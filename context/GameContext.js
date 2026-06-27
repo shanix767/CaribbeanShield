@@ -71,21 +71,21 @@ export function GameProvider({ children }) {
 
     //Loads saved game prgress
     useEffect(() => {
-        AsyncStorage.getItem(STORAGE_KEY).then(saved => {
-            if (saved) {
-                try {
-                    setState(JSON.parse(saved));
-                } catch (error) {
-                    console.error('Saved game data is invalid:', error);
-                }
-            }
-            setLoaded(true);
-        }).catch(error => {
-            console.error('Could not load game data:', error);
-            setLoaded(true);
-        });
-    },[]);
-    
+    async function load() {
+        try {
+        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        if (saved !== null) {
+            setState(JSON.parse(saved));
+        }
+        } catch (e) {
+        console.warn('Could not load game data:', e);
+        } finally {
+        setLoaded(true);
+        }
+    }
+    load();
+    }, []);
+
     //Saves progress after state change
     useEffect(() => {
         if (!loaded) return;
