@@ -26,7 +26,7 @@ const MISSIONS = {
       {
         icon: '📡',
         heading: 'Watch vs Warning',
-        body: 'A Hurricane Watch means conditions are possible within 48 hours. A Warning means they are expected within 36 hours. Act on the Watch — not the Warning.',
+        body: 'A Hurricane Watch means conditions are possible within 48 hours. A Warning means they are expected within 36 hours. Act on the Watch - not the Warning.',
       },
       {
         icon: '🏠',
@@ -109,7 +109,7 @@ export default function MissionDetail() {
   //Checklist state - tracks which items have been ticked
   const [checked, setChecked] = useState([]);
 
-  //Claim state — prevents double claiming
+  //Claim state - prevents double claiming
   const [claimed, setClaimed] = useState(alreadyComplete);
 
 
@@ -347,7 +347,7 @@ export default function MissionDetail() {
               <Text style={[styles.cardBody, { textAlign: 'center', marginTop: 8 }]}>
                 {quizScore === mission.quiz.length
                   ? 'Perfect score! Head to the checklist.'
-                  : 'Good effort — review the Learn section and try again.'}
+                  : 'Good effort - review the Learn section and try again.'}
               </Text>
             </View>
 
@@ -413,7 +413,7 @@ export default function MissionDetail() {
               })}
             </View>
 
-            {/* Completion banner — shows when all items ticked */}
+            {/* Completion banner - shows when all items ticked */}
             {allChecked && !claimed && (
               <View style={styles.completeBanner}>
                 <Text style={styles.completeBannerText}>
@@ -422,11 +422,11 @@ export default function MissionDetail() {
               </View>
             )}
 
-            {/* Claim button — disabled until all items ticked */}
+            {/* Claim button - disabled until all items ticked */}
             {claimed ? (
               <View style={styles.claimedBox}>
                 <Text style={styles.claimedText}>
-                  ✓ {mission.xp} XP claimed — {mission.badge} earned
+                  ✓ {mission.xp} XP claimed - {mission.badge} earned
                 </Text>
               </View>
             ) : (

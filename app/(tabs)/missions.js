@@ -181,7 +181,7 @@ function MissionCard({ mission, onPress }) {
         </View>
       </View>
 
-      {/* Bottom row — tier label, badge name, status chip */}
+      {/* Bottom row - tier label, badge name, status chip */}
       <View style={styles.cardBottom}>
         <Text style={styles.tier}>Tier {mission.tier}</Text>
         <Text style={styles.badge}>🏅 {mission.badge}</Text>

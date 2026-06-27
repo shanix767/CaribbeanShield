@@ -12,7 +12,7 @@ const INITIAL_STATE = {
     xp: 0,
     completedMissions: [],
     earnedBadges: [],
-    parish: 'Saint George',
+    parish: 'Player 1 - Saint George',
 };
 
 //Badge awards
