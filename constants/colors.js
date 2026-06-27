@@ -2,6 +2,7 @@
 
 export const Colors = {
     bg:         '#F2EDE4',
+    cardbg:     '#E6F0E4',
     card:       '#FFFFFF',
     surface:    '#F0EDE8',
     border:     '#E0D9CE',
