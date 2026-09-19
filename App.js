@@ -15,14 +15,15 @@ import { fetchRecentEarthquakes } from './services/earthquakeApi';
 import { fetchWeeklyVolcanoActivity } from './services/volcanoApi';
 import { fetchRecentFloodAlerts } from './services/floodApi';
 import { TEST_STORM, TEST_EARTHQUAKES, TEST_VOLCANOES, TEST_FLOODS } from './services/testData';
+import ShelterMapScreen from './ShelterMapScreen';
 
 // Flip any of these to true to preview that card with sample alert data
 // instead of waiting for a real event. Leave all false for normal live data.
 const TEST_MODE = {
-  hurricane: true,
-  earthquake: true,
-  volcano: true,
-  flood: true,
+  hurricane: false,
+  earthquake: false,
+  volcano: false,
+  flood: false,
 };
 
 // Earthy theme, same as the rest of CaribbeanShield
@@ -44,7 +45,7 @@ function proximityLabel(distanceKm) {
   return { text: 'Far from Dominica', color: COLORS.forestGreen };
 }
 
-export default function App() {
+function HazardDashboard() {
   const [watchData, setWatchData] = useState(null);
   const [earthquakes, setEarthquakes] = useState([]);
   const [earthquakesError, setEarthquakesError] = useState(null);
@@ -435,5 +436,83 @@ const styles = StyleSheet.create({
   conditionLine: {
     color: COLORS.textDark,
     marginBottom: 4,
+  },
+});
+
+// Top-level App — toggles between the hazard dashboard and the shelter map.
+// A full-screen map needs its own space rather than sitting inside a
+// scrolling card, so this is a simple tab switch rather than adding either
+// screen inside the other.
+export default function App() {
+  const [activeView, setActiveView] = useState('dashboard');
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={topTabStyles.tabBar}>
+        <TouchableOpacity
+          style={[
+            topTabStyles.tabButton,
+            activeView === 'dashboard' && topTabStyles.tabButtonActive,
+          ]}
+          onPress={() => setActiveView('dashboard')}
+        >
+          <Text
+            style={[
+              topTabStyles.tabLabel,
+              activeView === 'dashboard' && topTabStyles.tabLabelActive,
+            ]}
+          >
+            Hazard Watch
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            topTabStyles.tabButton,
+            activeView === 'shelterMap' && topTabStyles.tabButtonActive,
+          ]}
+          onPress={() => setActiveView('shelterMap')}
+        >
+          <Text
+            style={[
+              topTabStyles.tabLabel,
+              activeView === 'shelterMap' && topTabStyles.tabLabelActive,
+            ]}
+          >
+            Nearest Shelter
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeView === 'dashboard' ? <HazardDashboard /> : <ShelterMapScreen />}
+    </View>
+  );
+}
+
+const topTabStyles = StyleSheet.create({
+  tabBar: {
+    flexDirection: 'row',
+    paddingTop: 50,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    backgroundColor: COLORS.background,
+    gap: 8,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: COLORS.cardBackground,
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.forestGreen,
+  },
+  tabLabel: {
+    fontWeight: '600',
+    color: COLORS.textDark,
+  },
+  tabLabelActive: {
+    color: '#FFFFFF',
   },
 });
