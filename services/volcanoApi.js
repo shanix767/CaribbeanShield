@@ -1,14 +1,14 @@
 // volcanoApi.js
 //
-// Pulls the Smithsonian/USGS Weekly Volcanic Activity Report — a global feed
+// Pulls the Smithsonian/USGS Weekly Volcanic Activity Report - a global feed
 // covering roughly 16 volcanoes per week (continuing eruptions plus new
 // activity). It's XML, and each entry includes a georss:point with the
-// volcano's coordinates, so — same approach as the hurricane feed — we
+// volcano's coordinates, so - same approach as the hurricane feed - we
 // calculate distance from Dominica ourselves rather than relying on the feed
 // to know what's "Caribbean-relevant".
 //
 // Requires: npm install fast-xml-parser (same package used for the earlier
-// NHC RSS version — if you removed it after switching hurricanes to JSON,
+// NHC RSS version - if you removed it after switching hurricanes to JSON,
 // you'll need to reinstall it for this one).
 
 import { XMLParser } from "fast-xml-parser";
@@ -19,7 +19,7 @@ const DOMINICA_LAT = 15.3017;
 const DOMINICA_LON = -61.388;
 
 // Volcanoes within this distance are flagged as regionally relevant to
-// Dominica — loose enough to cover the whole Lesser Antilles arc.
+// Dominica - loose enough to cover the whole Lesser Antilles arc.
 const REGIONAL_RELEVANCE_RADIUS_KM = 1200;
 
 const xmlParser = new XMLParser({
@@ -61,7 +61,7 @@ function parseGeoRssPoint(pointString) {
 
 export async function fetchWeeklyVolcanoActivity() {
   // Without a timeout, a slow or unreachable feed leaves the screen spinning
-  // forever — AbortController lets fetch give up after a fixed wait instead.
+  // forever - AbortController lets fetch give up after a fixed wait instead.
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), 10000); // 10 seconds
 

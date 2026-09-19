@@ -8,7 +8,7 @@
 //      OSRM's free public routing server
 //
 // IMPORTANT LIMITATION: OSRM's public demo server (router.project-osrm.org)
-// is meant for light/testing use, not production traffic — there's no
+// is meant for light/testing use, not production traffic - there's no
 // uptime guarantee and it can be slow or rate-limited under heavy use. Fine
 // for a coursework app, but if this app grows real users, a paid routing
 // provider (Mapbox, Google Directions) would be the more reliable choice.
@@ -71,29 +71,33 @@ export async function getCurrentUserLocation() {
   };
 }
 
-// Finds the closest shelter (straight-line) to a given position.
+// Finds the N closest shelters (straight-line) to a given position, sorted
+// nearest-first. Used to offer alternatives in case the single nearest
+// shelter turns out to be full, closed, or its access road is blocked.
+export function findNearestShelters(userLatitude, userLongitude, count = 5) {
+  const withDistances = SHELTERS.map((shelter) => ({
+    shelter,
+    straightLineDistanceKm:
+      Math.round(
+        haversineDistanceKm(
+          userLatitude,
+          userLongitude,
+          shelter.latitude,
+          shelter.longitude
+        ) * 10
+      ) / 10,
+  }));
+
+  withDistances.sort((a, b) => a.straightLineDistanceKm - b.straightLineDistanceKm);
+
+  return withDistances.slice(0, count);
+}
+
+// Finds just the closest shelter - thin wrapper around findNearestShelters
+// for callers that only need the single nearest one.
 export function findNearestShelter(userLatitude, userLongitude) {
-  let closestShelter = null;
-  let closestDistanceKm = Infinity;
-
-  for (const shelter of SHELTERS) {
-    const distanceKm = haversineDistanceKm(
-      userLatitude,
-      userLongitude,
-      shelter.latitude,
-      shelter.longitude
-    );
-
-    if (distanceKm < closestDistanceKm) {
-      closestDistanceKm = distanceKm;
-      closestShelter = shelter;
-    }
-  }
-
-  return {
-    shelter: closestShelter,
-    straightLineDistanceKm: Math.round(closestDistanceKm * 10) / 10,
-  };
+  const [nearest] = findNearestShelters(userLatitude, userLongitude, 1);
+  return nearest;
 }
 
 // Fetches an actual road route between two points from OSRM, returning the
@@ -119,7 +123,7 @@ export async function fetchRoadRoute(fromLat, fromLon, toLat, toLon) {
 
   const route = routeData.routes[0];
 
-  // GeoJSON coordinates come as [lon, lat] pairs — react-native-maps wants
+  // GeoJSON coordinates come as [lon, lat] pairs - react-native-maps wants
   // {latitude, longitude} objects, so flip them here.
   const routeCoordinates = route.geometry.coordinates.map(([lon, lat]) => ({
     latitude: lat,

@@ -6,7 +6,7 @@
 // in App.js's TEST_MODE object.
 //
 // Keep this in sync with the real field names in each services/*Api.js file
-// if those ever change — this is just plain data, not validated against them.
+// if those ever change - this is just plain data, not validated against them.
 
 export const TEST_STORM = {
   storms: [

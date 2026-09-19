@@ -1,6 +1,6 @@
 // notifications.js
 //
-// LOCAL notifications only — this detects changes each time the app checks
+// LOCAL notifications only - this detects changes each time the app checks
 // hazard data (on open or refresh) and fires a notification if something is
 // different from last time. It does NOT run in the background when the app
 // is closed; that would require a server-side pipeline (a scheduled backend
@@ -8,7 +8,7 @@
 // much bigger undertaking than this.
 //
 // Requires: npx expo install expo-notifications @react-native-async-storage/async-storage
-// expo-notifications has native code — needs an EAS rebuild, same as
+// expo-notifications has native code - needs an EAS rebuild, same as
 // react-native-maps and expo-location did.
 
 import * as Notifications from "expo-notifications";
@@ -17,7 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const LAST_KNOWN_STATE_KEY = "caribbeanShield:lastKnownHazardState";
 
 // Controls how notifications behave while the app is open and in the
-// foreground — without this, Expo's default is to NOT show an alert banner
+// foreground - without this, Expo's default is to NOT show an alert banner
 // for foreground notifications, which would make this feature invisible
 // during the exact moment it's most likely to fire (right after a refresh).
 Notifications.setNotificationHandler({
@@ -40,7 +40,7 @@ async function presentNotification(title, body) {
   });
 }
 
-// Builds a simple "fingerprint" of the current hazard state — just enough
+// Builds a simple "fingerprint" of the current hazard state - just enough
 // detail to detect that something changed, not a full data dump.
 function buildStateSnapshot({ storms, earthquakes, volcanicReports, floods }) {
   return {
@@ -67,7 +67,7 @@ function arraysDiffer(a, b) {
 // Compares the current hazard data against what was last seen (persisted in
 // AsyncStorage), fires an OS notification per category that has something
 // new, saves the current state as the new baseline, and RETURNS the list of
-// changes so the caller can also show something in-app (e.g. a modal) —
+// changes so the caller can also show something in-app (e.g. a modal) -
 // useful since an OS notification banner can be missed if the phone is
 // actively in someone's hand looking at a different screen.
 export async function checkForHazardChangesAndNotify(currentData) {
@@ -79,10 +79,10 @@ export async function checkForHazardChangesAndNotify(currentData) {
     const storedJson = await AsyncStorage.getItem(LAST_KNOWN_STATE_KEY);
     previousSnapshot = storedJson ? JSON.parse(storedJson) : null;
   } catch {
-    previousSnapshot = null; // corrupted or missing — treat as first run
+    previousSnapshot = null; // corrupted or missing - treat as first run
   }
 
-  // First time ever running — just save the baseline, don't notify about
+  // First time ever running - just save the baseline, don't notify about
   // "changes" from nothing, since that would fire on every fresh install.
   if (previousSnapshot) {
     if (arraysDiffer(currentSnapshot.stormNames, previousSnapshot.stormNames)) {
@@ -122,7 +122,7 @@ export async function checkForHazardChangesAndNotify(currentData) {
       });
     }
 
-    // Fire the OS notification for each change too — belt and suspenders,
+    // Fire the OS notification for each change too - belt and suspenders,
     // since a notification is useful if the app is backgrounded, while the
     // in-app modal (built from this same `changes` array by the caller)
     // covers the case where the app is open but on a different tab.

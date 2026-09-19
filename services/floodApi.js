@@ -1,18 +1,18 @@
 // floodApi.js
 //
 // Pulls flood events from GDACS (Global Disaster Alert and Coordination
-// System) — a UN/EU-run global disaster monitoring system, free to query,
+// System) - a UN/EU-run global disaster monitoring system, free to query,
 // no API key required.
 //
 // IMPORTANT LIMITATION: GDACS only tracks disaster-scale floods (events large
 // enough to have meaningful population impact), not routine local flooding.
 // For a small island like Dominica, this will often show "no alerts" even
 // during ordinary heavy-rain flooding that never reaches GDACS's threshold.
-// That's expected — this is a "is there a major regional flood event"
+// That's expected - this is a "is there a major regional flood event"
 // check, not a substitute for local Met Office flood warnings.
 //
 // GDACS returns GeoJSON. Some events are mapped as a Point (a single
-// coordinate) and some as a Polygon (an affected area) — distance is only
+// coordinate) and some as a Polygon (an affected area) - distance is only
 // calculated for Point events, since finding the nearest edge of a polygon
 // is more complexity than this app needs right now.
 
@@ -55,7 +55,7 @@ function stripHtmlTags(htmlText) {
 }
 
 // Without a timeout, a slow or unreachable feed leaves the screen spinning
-// forever — this wraps fetch so it gives up after a fixed wait instead.
+// forever - this wraps fetch so it gives up after a fixed wait instead.
 async function fetchWithTimeout(url, timeoutMs = 10000) {
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);

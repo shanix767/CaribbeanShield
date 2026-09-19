@@ -1,26 +1,26 @@
 // hurricaneApi.js
 //
 // Pulls two pieces of hurricane-relevant data for CaribbeanShield:
-//   1. NHC's CurrentStorms.json — structured data (not prose) on any active
+//   1. NHC's CurrentStorms.json - structured data (not prose) on any active
 //      Atlantic tropical system: name, category, wind speed, movement.
-//   2. OpenWeatherMap current conditions for Dominica — local wind/rain/pressure.
+//   2. OpenWeatherMap current conditions for Dominica - local wind/rain/pressure.
 //
 // IMPORTANT LIMITATION: NHC's JSON does NOT list which islands are under an
-// official watch/warning — that detail only exists in the prose public
+// official watch/warning - that detail only exists in the prose public
 // advisory or in NHC's GIS map layers, neither of which is practical to parse
 // here. Instead, we calculate straight-line distance from each storm to
 // Dominica ourselves. This is a rough proximity estimate, NOT an official
-// watch/warning determination — the screen must make that distinction clear
+// watch/warning determination - the screen must make that distinction clear
 // to the user, with a link to the real advisory for anything official.
 
 const CURRENT_STORMS_URL = "https://www.nhc.noaa.gov/CurrentStorms.json";
 
 // TODO: move this to an env variable (e.g. via expo-constants + app.config.js)
-// before this ships anywhere public — an OpenWeatherMap key is free but should
+// before this ships anywhere public - an OpenWeatherMap key is free but should
 // still not be hardcoded in source control.
 const OPENWEATHER_API_KEY = "92e6529cafbdb2c16607344a1494daf8 ";
 
-// Roseau, Dominica — used both as the weather lookup point and as the
+// Roseau, Dominica - used both as the weather lookup point and as the
 // reference point for storm-distance calculations.
 const DOMINICA_LAT = 15.3017;
 const DOMINICA_LON = -61.388;
@@ -49,7 +49,7 @@ function hurricaneCategoryFromWindMph(windMph) {
 }
 
 // Straight-line ("great circle") distance between two lat/lon points, in km.
-// This ignores landmasses and storm forecast track entirely — it's just how
+// This ignores landmasses and storm forecast track entirely - it's just how
 // far away the storm's current center is right now, as a rough proximity signal.
 function haversineDistanceKm(lat1, lon1, lat2, lon2) {
   const EARTH_RADIUS_KM = 6371;
@@ -70,7 +70,7 @@ function haversineDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 // Without a timeout, a slow or unreachable feed leaves the screen spinning
-// forever — this wraps fetch so it gives up after a fixed wait instead.
+// forever - this wraps fetch so it gives up after a fixed wait instead.
 async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
@@ -152,7 +152,7 @@ export async function fetchDominicaConditions() {
   };
 }
 
-// Convenience function the screen calls once — runs both requests together
+// Convenience function the screen calls once - runs both requests together
 // and keeps the two results separate so one failing doesn't hide the other.
 export async function fetchHurricaneWatchData() {
   const [stormsResult, conditionsResult] = await Promise.allSettled([

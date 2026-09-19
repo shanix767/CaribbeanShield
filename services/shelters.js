@@ -4,22 +4,22 @@
 // Disaster Management's public shelter list:
 // https://sheltermanagement.odm.gov.dm/EShelters
 //
-// IMPORTANT: ODM's own site swaps the coordinate labels — their "longt"
+// IMPORTANT: ODM's own site swaps the coordinate labels - their "longt"
 // URL parameter actually holds the LATITUDE value, and their "lat"
 // parameter holds the LONGITUDE value (Dominica sits at roughly 15°N,
 // 61°W, so a value like 15.49 is clearly a latitude no matter what it's
-// labeled). This file has already corrected for that — latitude and
+// labeled). This file has already corrected for that - latitude and
 // longitude below are the real, usable values.
 //
 // This list only includes shelters that had map coordinates published on
 // ODM's site as of when this was compiled. Several listed shelters had no
 // coordinates there and are left out. ODM's site also shows a live
 // Open/Closed status per shelter (whether it's currently activated for an
-// emergency) — that status is NOT captured here since it changes in real
+// emergency) - that status is NOT captured here since it changes in real
 // time; this file is locations only. Capacity numbers are as published by
 // ODM and may not reflect current conditions.
 //
-// Re-check https://sheltermanagement.odm.gov.dm/EShelters periodically —
+// Re-check https://sheltermanagement.odm.gov.dm/EShelters periodically -
 // ODM updates this list as shelters are added, closed, or relocated.
 
 export const SHELTERS = [

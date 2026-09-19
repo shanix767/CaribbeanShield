@@ -1,28 +1,44 @@
 // ShelterMapScreen.js
 //
-// Shows the user's current location, the nearest emergency shelter from
-// services/shelters.js, and an actual road route (via OSRM) between them —
-// not just a straight line, so distance/time estimates are realistic for
-// someone actually driving there.
+// Shows the user's current location, the nearest emergency shelters from
+// services/shelters.js, and an actual road route (via OSRM) to whichever
+// one is currently selected. Shows up to 5 nearby shelters rather than just
+// the single closest one, since the nearest shelter could be full, closed,
+// or have a blocked access road during a real event - having an easy way to
+// see and switch to an alternative matters here.
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import {
   getCurrentUserLocation,
-  findNearestShelter,
+  findNearestShelters,
   fetchRoadRoute,
 } from './services/locationApi';
 import { COLORS } from './theme/colors';
 
+const SHELTER_COUNT = 5;
+
 export default function ShelterMapScreen() {
   const [userLocation, setUserLocation] = useState(null);
-  const [nearestShelter, setNearestShelter] = useState(null);
+  const [nearbyShelters, setNearbyShelters] = useState([]); // [{shelter, straightLineDistanceKm}]
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [route, setRoute] = useState(null);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  const loadShelterRoute = useCallback(async () => {
+  // Loads the user's position and the list of nearby shelters. Only runs on
+  // initial load / manual refresh - selecting a different shelter from the
+  // list does NOT re-run this, just re-fetches the route (see below).
+  const loadUserAndShelters = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -30,25 +46,13 @@ export default function ShelterMapScreen() {
       const position = await getCurrentUserLocation();
       setUserLocation(position);
 
-      const { shelter, straightLineDistanceKm } = findNearestShelter(
+      const shelters = findNearestShelters(
         position.latitude,
-        position.longitude
+        position.longitude,
+        SHELTER_COUNT
       );
-      setNearestShelter({ ...shelter, straightLineDistanceKm });
-
-      try {
-        const roadRoute = await fetchRoadRoute(
-          position.latitude,
-          position.longitude,
-          shelter.latitude,
-          shelter.longitude
-        );
-        setRoute(roadRoute);
-      } catch (routeError) {
-        // Road routing failing shouldn't block showing the map and shelter —
-        // just fall back to no drawn route, straight-line distance still shown.
-        setRoute(null);
-      }
+      setNearbyShelters(shelters);
+      setSelectedIndex(0); // default to nearest
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -56,15 +60,45 @@ export default function ShelterMapScreen() {
     setIsLoading(false);
   }, []);
 
+  // Fetches the road route to whichever shelter is currently selected.
+  // Separate from loadUserAndShelters so switching shelters doesn't require
+  // re-fetching GPS position or re-sorting the shelter list.
+  const loadRouteToSelected = useCallback(async () => {
+    if (!userLocation || nearbyShelters.length === 0) return;
+
+    const { shelter } = nearbyShelters[selectedIndex];
+    setIsRouteLoading(true);
+
+    try {
+      const roadRoute = await fetchRoadRoute(
+        userLocation.latitude,
+        userLocation.longitude,
+        shelter.latitude,
+        shelter.longitude
+      );
+      setRoute(roadRoute);
+    } catch {
+      // Road routing failing shouldn't block showing the map - fall back to
+      // no drawn route, straight-line distance still shown in the info card.
+      setRoute(null);
+    }
+
+    setIsRouteLoading(false);
+  }, [userLocation, nearbyShelters, selectedIndex]);
+
   useEffect(() => {
-    loadShelterRoute();
-  }, [loadShelterRoute]);
+    loadUserAndShelters();
+  }, [loadUserAndShelters]);
+
+  useEffect(() => {
+    loadRouteToSelected();
+  }, [loadRouteToSelected]);
 
   if (isLoading) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color={COLORS.forestGreen} />
-        <Text style={styles.loadingText}>Finding your nearest shelter...</Text>
+        <ActivityIndicator size="large" color={COLORS.textGreen} />
+        <Text style={styles.loadingText}>Finding nearby shelters...</Text>
       </View>
     );
   }
@@ -73,12 +107,14 @@ export default function ShelterMapScreen() {
     return (
       <View style={styles.centeredContainer}>
         <Text style={styles.errorText}>{errorMessage}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadShelterRoute}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
+        <TouchableOpacity style={styles.actionButton} onPress={loadUserAndShelters}>
+          <Text style={styles.actionButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
+
+  const selected = nearbyShelters[selectedIndex];
 
   return (
     <View style={styles.screenContainer}>
@@ -88,17 +124,21 @@ export default function ShelterMapScreen() {
         initialRegion={{
           latitude: userLocation.latitude,
           longitude: userLocation.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
+          latitudeDelta: 0.08,
+          longitudeDelta: 0.08,
         }}
         showsUserLocation
       >
-        <Marker
-          coordinate={nearestShelter}
-          title={nearestShelter.name}
-          description={`${nearestShelter.community} — ${nearestShelter.type}`}
-          pinColor={COLORS.marker}
-        />
+        {nearbyShelters.map((entry, index) => (
+          <Marker
+            key={index}
+            coordinate={entry.shelter}
+            title={entry.shelter.name}
+            description={`${entry.shelter.community} - ${entry.shelter.type}`}
+            pinColor={index === selectedIndex ? COLORS.markerO : COLORS.markerG}
+            onPress={() => setSelectedIndex(index)}
+          />
+        ))}
 
         {route && (
           <Polyline
@@ -109,31 +149,73 @@ export default function ShelterMapScreen() {
         )}
       </MapView>
 
+      {/* Horizontal picker for the nearby shelters */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.shelterList}
+        contentContainerStyle={styles.shelterListContent}
+      >
+        {nearbyShelters.map((entry, index) => {
+          const isSelected = index === selectedIndex;
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.shelterChip, isSelected && styles.shelterChipSelected]}
+              onPress={() => setSelectedIndex(index)}
+            >
+              <Text
+                style={[
+                  styles.shelterChipName,
+                  isSelected && styles.shelterChipNameSelected,
+                ]}
+                numberOfLines={1}
+              >
+                {entry.shelter.name}
+              </Text>
+              <Text
+                style={[
+                  styles.shelterChipDistance,
+                  isSelected && styles.shelterChipDistanceSelected,
+                ]}
+              >
+                {entry.straightLineDistanceKm} km
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       <View style={styles.infoCard}>
-        <Text style={styles.shelterName}>{nearestShelter.name}</Text>
+        <Text style={styles.shelterName}>{selected.shelter.name}</Text>
         <Text style={styles.shelterDetail}>
-          {nearestShelter.community} — {nearestShelter.type}
+          {selected.shelter.community} - {selected.shelter.type}
         </Text>
 
-        {route ? (
+        {isRouteLoading ? (
+          <View style={styles.routeLoadingRow}>
+            <ActivityIndicator size="small" color={COLORS.textGreen} />
+            <Text style={styles.routeLoadingText}>Getting route...</Text>
+          </View>
+        ) : route ? (
           <Text style={styles.distanceText}>
             {route.distanceKm} km by road (~{route.durationMinutes} min drive)
           </Text>
         ) : (
           <>
             <Text style={styles.distanceText}>
-              ~{nearestShelter.straightLineDistanceKm} km straight-line distance
+              ~{selected.straightLineDistanceKm} km straight-line distance
             </Text>
             <Text style={styles.offlineNote}>
-              Road route and map imagery need an internet connection — if
+              Road route and map imagery need an internet connection - if
               you're offline, this shelter's location and straight-line
               distance above are still accurate.
             </Text>
           </>
         )}
 
-        <TouchableOpacity style={styles.retryButton} onPress={loadShelterRoute}>
-          <Text style={styles.retryButtonText}>Refresh My Location</Text>
+        <TouchableOpacity style={styles.actionButton} onPress={loadUserAndShelters}>
+          <Text style={styles.actionButtonText}>Refresh My Location</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -151,7 +233,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.backgroundWhite,
+    backgroundColor: COLORS.backgroundCream,
     padding: 20,
   },
   loadingText: {
@@ -159,9 +241,47 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
   },
   errorText: {
-    color: COLORS.textRed,
+    color: COLORS.textOrange,
     textAlign: 'center',
     marginBottom: 16,
+  },
+  shelterList: {
+    backgroundColor: COLORS.backgroundCream,
+    maxHeight: 64,
+  },
+  shelterListContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  shelterChip: {
+    backgroundColor: COLORS.backgroundWhite,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 120,
+    borderWidth: 1,
+    borderColor: COLORS.borderCream,
+  },
+  shelterChipSelected: {
+    backgroundColor: COLORS.backgroundGreen,
+    borderColor: COLORS.borderGreen,
+  },
+  shelterChipName: {
+    fontWeight: 'bold',
+    color: COLORS.textDark,
+    fontSize: 13,
+  },
+  shelterChipNameSelected: {
+    color: COLORS.textWhite,
+  },
+  shelterChipDistance: {
+    color: COLORS.textGray,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  shelterChipDistanceSelected: {
+    color: COLORS.textCream,
   },
   infoCard: {
     backgroundColor: COLORS.backgroundWhite,
@@ -184,19 +304,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   offlineNote: {
-    color: '#6B6B6B',
+    color: COLORS.textGray,
     fontSize: 12,
     fontStyle: 'italic',
     marginTop: 4,
   },
-  retryButton: {
+  routeLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  routeLoadingText: {
+    color: COLORS.textDark,
+  },
+  actionButton: {
     marginTop: 12,
-    backgroundColor: COLORS.textGreen,
+    backgroundColor: COLORS.backgroundGreen,
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
   },
-  retryButtonText: {
+  actionButtonText: {
     color: COLORS.textWhite,
     fontWeight: 'bold',
   },

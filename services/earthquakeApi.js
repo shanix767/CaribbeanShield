@@ -2,12 +2,12 @@
 //
 // Pulls recent earthquake activity near Dominica from USGS's public
 // earthquake query API. Unlike the hurricane data, USGS gives us exact
-// magnitude, location, and coordinates directly — no proximity estimating
+// magnitude, location, and coordinates directly - no proximity estimating
 // needed, since every quake already comes back within our requested radius.
 
 const USGS_QUERY_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query";
 
-// Roseau, Dominica — center point for the search radius below.
+// Roseau, Dominica - center point for the search radius below.
 const DOMINICA_LAT = 15.3017;
 const DOMINICA_LON = -61.388;
 
@@ -18,7 +18,7 @@ const DOMINICA_LON = -61.388;
 const SEARCH_RADIUS_KM = 500;
 const LOOKBACK_DAYS = 30;
 
-// Below this magnitude, quakes are common and rarely felt — filtering them
+// Below this magnitude, quakes are common and rarely felt - filtering them
 // out keeps the list meaningful instead of showing dozens of tiny events.
 const MINIMUM_MAGNITUDE = 2.5;
 

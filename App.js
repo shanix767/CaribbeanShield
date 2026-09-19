@@ -32,11 +32,11 @@ const TEST_MODE = {
   flood: false,
 };
 
-// Distance bands are just a rough visual cue, not an official watch/warning —
+// Distance bands are just a rough visual cue, not an official watch/warning -
 // see the note rendered on the storms card below.
 function proximityLabel(distanceKm) {
   if (distanceKm == null) return null;
-  if (distanceKm < 800) return { text: 'Close — worth tracking closely', color: COLORS.textOrange };
+  if (distanceKm < 800) return { text: 'Close - worth tracking closely', color: COLORS.textOrange };
   if (distanceKm < 2000) return { text: 'Moderate distance', color: COLORS.textGray };
   return { text: 'Far from Dominica', color: COLORS.textGreen };
 }
@@ -104,7 +104,7 @@ function HazardDashboard() {
     // top-level App component below (so the alert modal can appear
     // regardless of which tab is active), not here. A manual pull-to-refresh
     // updates the displayed data but does NOT re-trigger a notification
-    // check — only app open does.
+    // check - only app open does.
 
     setIsLoading(false);
     setIsRefreshing(false);
@@ -169,7 +169,7 @@ function HazardDashboard() {
                   <View key={index} style={styles.stormRow}>
                     <Text style={styles.stormTitle}>
                       {storm.classificationLabel} {storm.name}
-                      {storm.category ? ` — Category ${storm.category}` : ''}
+                      {storm.category ? ` - Category ${storm.category}` : ''}
                     </Text>
 
                     {storm.windMph != null && (
@@ -186,7 +186,7 @@ function HazardDashboard() {
 
                     {proximity && (
                       <Text style={[styles.stormDetail, { color: proximity.color }]}>
-                        ~{storm.distanceFromDominicaKm} km from Dominica —{' '}
+                        ~{storm.distanceFromDominicaKm} km from Dominica -{' '}
                         {proximity.text}
                       </Text>
                     )}
@@ -320,7 +320,7 @@ function HazardDashboard() {
 
           <Text style={styles.disclaimerText}>
             GDACS only tracks disaster-scale floods, not routine local
-            flooding — "no alerts" here doesn't mean it's safe from ordinary
+            flooding - "no alerts" here doesn't mean it's safe from ordinary
             heavy rain.
           </Text>
 
@@ -343,7 +343,7 @@ function HazardDashboard() {
             return regionalFloods.map((flood, index) => (
               <View key={index} style={styles.stormRow}>
                 <Text style={styles.stormTitle}>
-                  {flood.name} — {flood.country} ({flood.alertLevel})
+                  {flood.name} - {flood.country} ({flood.alertLevel})
                 </Text>
                 <Text style={styles.stormDetail}>{flood.summary}</Text>
                 {flood.distanceFromDominicaKm != null && (
@@ -438,14 +438,14 @@ const styles = StyleSheet.create({
   },
 });
 
-// Top-level App — toggles between the hazard dashboard and the shelter map.
+// Top-level App - toggles between the hazard dashboard and the shelter map.
 // A full-screen map needs its own space rather than sitting inside a
 // scrolling card, so this is a simple tab switch rather than adding either
 // screen inside the other.
 //
 // This component ALSO independently fetches hazard data once, on app open,
 // specifically to check for changes and show an in-app modal that appears
-// no matter which tab the user is on — HazardDashboard's own fetch (for
+// no matter which tab the user is on - HazardDashboard's own fetch (for
 // display) is separate, so the four hazard APIs do get called twice on
 // open. Not the most efficient, but far lower-risk than restructuring
 // HazardDashboard's already-working state management to share one fetch.
@@ -489,7 +489,7 @@ export default function App() {
           setActiveAlerts(changes);
         }
       } catch {
-        // Notifications are a nice-to-have — never block the app over this.
+        // Notifications are a nice-to-have - never block the app over this.
       }
     }
 
@@ -536,7 +536,7 @@ export default function App() {
 
       {activeView === 'dashboard' ? <HazardDashboard /> : <ShelterMapScreen />}
 
-      {/* App-wide alert modal — appears over whichever tab is active */}
+      {/* App-wide alert modal - appears over whichever tab is active */}
       <Modal
         visible={activeAlerts.length > 0}
         transparent
