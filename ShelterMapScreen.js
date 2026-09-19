@@ -13,14 +13,7 @@ import {
   findNearestShelter,
   fetchRoadRoute,
 } from './services/locationApi';
-
-const COLORS = {
-  background: '#F2EDE4',
-  forestGreen: '#2D5A27',
-  terracotta: '#C4522A',
-  textDark: '#2B2B2B',
-  cardBackground: '#FFFFFF',
-};
+import { COLORS } from './theme/colors';
 
 export default function ShelterMapScreen() {
   const [userLocation, setUserLocation] = useState(null);
@@ -104,13 +97,13 @@ export default function ShelterMapScreen() {
           coordinate={nearestShelter}
           title={nearestShelter.name}
           description={`${nearestShelter.community} — ${nearestShelter.type}`}
-          pinColor={COLORS.terracotta}
+          pinColor={COLORS.marker}
         />
 
         {route && (
           <Polyline
             coordinates={route.coordinates}
-            strokeColor="#FFD700"
+            strokeColor={COLORS.routeYellow}
             strokeWidth={6}
           />
         )}
@@ -158,7 +151,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundWhite,
     padding: 20,
   },
   loadingText: {
@@ -166,20 +159,20 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
   },
   errorText: {
-    color: COLORS.terracotta,
+    color: COLORS.textRed,
     textAlign: 'center',
     marginBottom: 16,
   },
   infoCard: {
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: COLORS.backgroundWhite,
     padding: 16,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
   shelterName: {
     fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.forestGreen,
+    fontWeight: 'bold',
+    color: COLORS.textGreen,
   },
   shelterDetail: {
     color: COLORS.textDark,
@@ -188,7 +181,7 @@ const styles = StyleSheet.create({
   distanceText: {
     color: COLORS.textDark,
     marginTop: 8,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   offlineNote: {
     color: '#6B6B6B',
@@ -198,13 +191,13 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 12,
-    backgroundColor: COLORS.forestGreen,
+    backgroundColor: COLORS.textGreen,
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
   },
   retryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: COLORS.textWhite,
+    fontWeight: 'bold',
   },
 });

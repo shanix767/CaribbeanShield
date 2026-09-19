@@ -16,33 +16,29 @@ import { fetchWeeklyVolcanoActivity } from './services/volcanoApi';
 import { fetchRecentFloodAlerts } from './services/floodApi';
 import { TEST_STORM, TEST_EARTHQUAKES, TEST_VOLCANOES, TEST_FLOODS } from './services/testData';
 import ShelterMapScreen from './ShelterMapScreen';
+import {
+  requestNotificationPermission,
+  checkForHazardChangesAndNotify,
+} from './services/notifications';
+import { COLORS } from './theme/colors';
 
 // Flip any of these to true to preview that card with sample alert data
 // instead of waiting for a real event. Leave all false for normal live data.
 const TEST_MODE = {
-  hurricane: false,
+  hurricane: true,
   earthquake: false,
   volcano: false,
   flood: false,
 };
 
-// Earthy theme, same as the rest of CaribbeanShield
-const COLORS = {
-  background: '#F2EDE4',
-  forestGreen: '#2D5A27',
-  terracotta: '#C4522A',
-  textDark: '#2B2B2B',
-  cardBackground: '#FFFFFF',
-  mutedText: '#6B6B6B',
-};
 
 // Distance bands are just a rough visual cue, not an official watch/warning —
 // see the note rendered on the storms card below.
 function proximityLabel(distanceKm) {
   if (distanceKm == null) return null;
-  if (distanceKm < 800) return { text: 'Close — worth tracking closely', color: COLORS.terracotta };
-  if (distanceKm < 2000) return { text: 'Moderate distance', color: '#B8860B' };
-  return { text: 'Far from Dominica', color: COLORS.forestGreen };
+  if (distanceKm < 800) return { text: 'Close — worth tracking closely', color: COLORS.textOrange };
+  if (distanceKm < 2000) return { text: 'Moderate distance', color: COLORS.textGray };
+  return { text: 'Far from Dominica', color: COLORS.textGreen };
 }
 
 function HazardDashboard() {
@@ -71,54 +67,66 @@ function HazardDashboard() {
         fetchRecentFloodAlerts(),
       ]);
 
-    setWatchData(
-      TEST_MODE.hurricane
-        ? TEST_STORM
-        : hurricaneResult.status === 'fulfilled' ? hurricaneResult.value : null
-    );
-    setEarthquakes(
-      TEST_MODE.earthquake
-        ? TEST_EARTHQUAKES
-        : earthquakeResult.status === 'fulfilled' ? earthquakeResult.value : []
-    );
+    const finalStorms = TEST_MODE.hurricane
+      ? TEST_STORM
+      : hurricaneResult.status === 'fulfilled' ? hurricaneResult.value : null;
+    const finalEarthquakes = TEST_MODE.earthquake
+      ? TEST_EARTHQUAKES
+      : earthquakeResult.status === 'fulfilled' ? earthquakeResult.value : [];
+    const finalVolcanicReports = TEST_MODE.volcano
+      ? TEST_VOLCANOES
+      : volcanoResult.status === 'fulfilled' ? volcanoResult.value : [];
+    const finalFloods = TEST_MODE.flood
+      ? TEST_FLOODS
+      : floodResult.status === 'fulfilled' ? floodResult.value : [];
+
+    setWatchData(finalStorms);
+    setEarthquakes(finalEarthquakes);
     setEarthquakesError(
       TEST_MODE.earthquake
         ? null
         : earthquakeResult.status === 'rejected' ? earthquakeResult.reason.message : null
     );
-    setVolcanicReports(
-      TEST_MODE.volcano
-        ? TEST_VOLCANOES
-        : volcanoResult.status === 'fulfilled' ? volcanoResult.value : []
-    );
+    setVolcanicReports(finalVolcanicReports);
     setVolcanicReportsError(
       TEST_MODE.volcano
         ? null
         : volcanoResult.status === 'rejected' ? volcanoResult.reason.message : null
     );
-    setFloods(
-      TEST_MODE.flood
-        ? TEST_FLOODS
-        : floodResult.status === 'fulfilled' ? floodResult.value : []
-    );
+    setFloods(finalFloods);
     setFloodsError(
       TEST_MODE.flood
         ? null
         : floodResult.status === 'rejected' ? floodResult.reason.message : null
     );
 
+    // Fire a local notification if anything changed since the last check.
+    // Wrapped in try/catch so a notification failure never blocks the
+    // dashboard itself from finishing its refresh.
+    try {
+      await checkForHazardChangesAndNotify({
+        storms: finalStorms?.storms,
+        earthquakes: finalEarthquakes,
+        volcanicReports: finalVolcanicReports,
+        floods: finalFloods,
+      });
+    } catch {
+      // Silently ignore — notifications are a nice-to-have, not core function.
+    }
+
     setIsLoading(false);
     setIsRefreshing(false);
   }, []);
 
   useEffect(() => {
+    requestNotificationPermission();
     loadWatchData();
   }, [loadWatchData]);
 
   if (isLoading) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color={COLORS.forestGreen} />
+        <ActivityIndicator size="large" color={COLORS.textGreen} />
         <Text style={styles.loadingText}>Checking the Atlantic...</Text>
         <StatusBar style="auto" />
       </View>
@@ -135,7 +143,7 @@ function HazardDashboard() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => loadWatchData(true)}
-            colors={[COLORS.forestGreen]}
+            colors={[COLORS.textGreen]}
           />
         }
       >
@@ -267,7 +275,7 @@ function HazardDashboard() {
                   ~{quake.distanceFromDominicaKm} km from Dominica
                 </Text>
                 {quake.hadTsunamiWarning && (
-                  <Text style={[styles.stormDetail, { color: COLORS.terracotta }]}>
+                  <Text style={[styles.stormDetail, { color: COLORS.textOrange }]}>
                     ⚠ Tsunami warning was issued for this event
                   </Text>
                 )}
@@ -370,7 +378,7 @@ function HazardDashboard() {
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundWhite,
   },
   scrollContent: {
     padding: 20,
@@ -380,7 +388,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundWhite,
   },
   loadingText: {
     marginTop: 12,
@@ -389,18 +397,18 @@ const styles = StyleSheet.create({
   screenTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.forestGreen,
+    color: COLORS.textGreen,
     marginBottom: 16,
   },
   card: {
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: COLORS.backgroundWhite,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   cardHeading: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: COLORS.textDark,
     marginBottom: 8,
   },
@@ -408,10 +416,10 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
   },
   errorText: {
-    color: COLORS.terracotta,
+    color: COLORS.textOrange,
   },
   disclaimerText: {
-    color: COLORS.mutedText,
+    color: COLORS.textGray,
     fontSize: 12,
     fontStyle: 'italic',
     marginBottom: 10,
@@ -420,8 +428,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   stormTitle: {
-    fontWeight: '600',
-    color: COLORS.terracotta,
+    fontWeight: 'bold',
+    color: COLORS.textOrange,
     marginBottom: 2,
   },
   stormDetail: {
@@ -429,9 +437,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   advisoryLink: {
-    color: COLORS.forestGreen,
+    color: COLORS.textGreen,
     marginTop: 6,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   conditionLine: {
     color: COLORS.textDark,
@@ -495,7 +503,7 @@ const topTabStyles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 12,
     paddingBottom: 8,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundW,
     gap: 8,
   },
   tabButton: {
@@ -503,16 +511,16 @@ const topTabStyles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: COLORS.backgroundWhite,
   },
   tabButtonActive: {
-    backgroundColor: COLORS.forestGreen,
+    backgroundColor: COLORS.textGreen,
   },
   tabLabel: {
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: COLORS.textDark,
   },
   tabLabelActive: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
   },
 });
