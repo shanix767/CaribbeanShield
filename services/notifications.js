@@ -65,10 +65,14 @@ function arraysDiffer(a, b) {
 }
 
 // Compares the current hazard data against what was last seen (persisted in
-// AsyncStorage), fires a notification per category that has something new,
-// and saves the current state as the new "last known" baseline.
+// AsyncStorage), fires an OS notification per category that has something
+// new, saves the current state as the new baseline, and RETURNS the list of
+// changes so the caller can also show something in-app (e.g. a modal) —
+// useful since an OS notification banner can be missed if the phone is
+// actively in someone's hand looking at a different screen.
 export async function checkForHazardChangesAndNotify(currentData) {
   const currentSnapshot = buildStateSnapshot(currentData);
+  const changes = [];
 
   let previousSnapshot = null;
   try {
@@ -82,39 +86,52 @@ export async function checkForHazardChangesAndNotify(currentData) {
   // "changes" from nothing, since that would fire on every fresh install.
   if (previousSnapshot) {
     if (arraysDiffer(currentSnapshot.stormNames, previousSnapshot.stormNames)) {
-      await presentNotification(
-        "Hurricane Watch Update",
-        currentSnapshot.stormNames.length > 0
-          ? `Active storm(s): ${currentSnapshot.stormNames.join(", ")}`
-          : "No active tropical systems in the Atlantic."
-      );
+      changes.push({
+        title: "Hurricane Watch Update",
+        body:
+          currentSnapshot.stormNames.length > 0
+            ? `Active storm(s): ${currentSnapshot.stormNames.join(", ")}`
+            : "No active tropical systems in the Atlantic.",
+      });
     }
 
     if (arraysDiffer(currentSnapshot.earthquakeIds, previousSnapshot.earthquakeIds)) {
-      await presentNotification(
-        "Earthquake Update",
-        "New earthquake activity detected near Dominica."
-      );
+      changes.push({
+        title: "Earthquake Update",
+        body: "New earthquake activity detected near Dominica.",
+      });
     }
 
     if (arraysDiffer(currentSnapshot.volcanoTitles, previousSnapshot.volcanoTitles)) {
-      await presentNotification(
-        "Volcanic Activity Update",
-        currentSnapshot.volcanoTitles.length > 0
-          ? `Regional activity: ${currentSnapshot.volcanoTitles.join(", ")}`
-          : "No regional volcanic activity reported."
-      );
+      changes.push({
+        title: "Volcanic Activity Update",
+        body:
+          currentSnapshot.volcanoTitles.length > 0
+            ? `Regional activity: ${currentSnapshot.volcanoTitles.join(", ")}`
+            : "No regional volcanic activity reported.",
+      });
     }
 
     if (arraysDiffer(currentSnapshot.floodNames, previousSnapshot.floodNames)) {
-      await presentNotification(
-        "Flood Alert Update",
-        currentSnapshot.floodNames.length > 0
-          ? `Regional flood event: ${currentSnapshot.floodNames.join(", ")}`
-          : "No regional flood alerts reported."
-      );
+      changes.push({
+        title: "Flood Alert Update",
+        body:
+          currentSnapshot.floodNames.length > 0
+            ? `Regional flood event: ${currentSnapshot.floodNames.join(", ")}`
+            : "No regional flood alerts reported.",
+      });
+    }
+
+    // Fire the OS notification for each change too — belt and suspenders,
+    // since a notification is useful if the app is backgrounded, while the
+    // in-app modal (built from this same `changes` array by the caller)
+    // covers the case where the app is open but on a different tab.
+    for (const change of changes) {
+      await presentNotification(change.title, change.body);
     }
   }
 
   await AsyncStorage.setItem(LAST_KNOWN_STATE_KEY, JSON.stringify(currentSnapshot));
+
+  return changes;
 }

@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Linking,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { fetchHurricaneWatchData } from './services/hurricaneApi';
 import { fetchRecentEarthquakes } from './services/earthquakeApi';
@@ -30,7 +31,6 @@ const TEST_MODE = {
   volcano: false,
   flood: false,
 };
-
 
 // Distance bands are just a rough visual cue, not an official watch/warning —
 // see the note rendered on the storms card below.
@@ -100,26 +100,17 @@ function HazardDashboard() {
         : floodResult.status === 'rejected' ? floodResult.reason.message : null
     );
 
-    // Fire a local notification if anything changed since the last check.
-    // Wrapped in try/catch so a notification failure never blocks the
-    // dashboard itself from finishing its refresh.
-    try {
-      await checkForHazardChangesAndNotify({
-        storms: finalStorms?.storms,
-        earthquakes: finalEarthquakes,
-        volcanicReports: finalVolcanicReports,
-        floods: finalFloods,
-      });
-    } catch {
-      // Silently ignore — notifications are a nice-to-have, not core function.
-    }
+    // Note: hazard-change detection and notifications happen once at the
+    // top-level App component below (so the alert modal can appear
+    // regardless of which tab is active), not here. A manual pull-to-refresh
+    // updates the displayed data but does NOT re-trigger a notification
+    // check — only app open does.
 
     setIsLoading(false);
     setIsRefreshing(false);
   }, []);
 
   useEffect(() => {
-    requestNotificationPermission();
     loadWatchData();
   }, [loadWatchData]);
 
@@ -378,7 +369,7 @@ function HazardDashboard() {
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: COLORS.backgroundWhite,
+    backgroundColor: COLORS.backgroundCream,
   },
   scrollContent: {
     padding: 20,
@@ -388,7 +379,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.backgroundWhite,
+    backgroundColor: COLORS.backgroundCream,
   },
   loadingText: {
     marginTop: 12,
@@ -451,8 +442,59 @@ const styles = StyleSheet.create({
 // A full-screen map needs its own space rather than sitting inside a
 // scrolling card, so this is a simple tab switch rather than adding either
 // screen inside the other.
+//
+// This component ALSO independently fetches hazard data once, on app open,
+// specifically to check for changes and show an in-app modal that appears
+// no matter which tab the user is on — HazardDashboard's own fetch (for
+// display) is separate, so the four hazard APIs do get called twice on
+// open. Not the most efficient, but far lower-risk than restructuring
+// HazardDashboard's already-working state management to share one fetch.
 export default function App() {
   const [activeView, setActiveView] = useState('dashboard');
+  const [activeAlerts, setActiveAlerts] = useState([]);
+
+  useEffect(() => {
+    async function checkForChangesOnAppOpen() {
+      await requestNotificationPermission();
+
+      const [hurricaneResult, earthquakeResult, volcanoResult, floodResult] =
+        await Promise.allSettled([
+          fetchHurricaneWatchData(),
+          fetchRecentEarthquakes(),
+          fetchWeeklyVolcanoActivity(),
+          fetchRecentFloodAlerts(),
+        ]);
+
+      const storms = TEST_MODE.hurricane
+        ? TEST_STORM.storms
+        : hurricaneResult.status === 'fulfilled' ? hurricaneResult.value.storms : [];
+      const earthquakes = TEST_MODE.earthquake
+        ? TEST_EARTHQUAKES
+        : earthquakeResult.status === 'fulfilled' ? earthquakeResult.value : [];
+      const volcanicReports = TEST_MODE.volcano
+        ? TEST_VOLCANOES
+        : volcanoResult.status === 'fulfilled' ? volcanoResult.value : [];
+      const floods = TEST_MODE.flood
+        ? TEST_FLOODS
+        : floodResult.status === 'fulfilled' ? floodResult.value : [];
+
+      try {
+        const changes = await checkForHazardChangesAndNotify({
+          storms,
+          earthquakes,
+          volcanicReports,
+          floods,
+        });
+        if (changes.length > 0) {
+          setActiveAlerts(changes);
+        }
+      } catch {
+        // Notifications are a nice-to-have — never block the app over this.
+      }
+    }
+
+    checkForChangesOnAppOpen();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -493,9 +535,92 @@ export default function App() {
       </View>
 
       {activeView === 'dashboard' ? <HazardDashboard /> : <ShelterMapScreen />}
+
+      {/* App-wide alert modal — appears over whichever tab is active */}
+      <Modal
+        visible={activeAlerts.length > 0}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveAlerts([])}
+      >
+        <View style={alertModalStyles.overlay}>
+          <View style={alertModalStyles.card}>
+            <View style={alertModalStyles.headerBand}>
+              <Text style={alertModalStyles.heading}>⚠️ Hazard Update</Text>
+            </View>
+
+            {activeAlerts.map((alert, index) => (
+              <View key={index} style={alertModalStyles.alertRow}>
+                <Text style={alertModalStyles.alertTitle}>{alert.title}</Text>
+                <Text style={alertModalStyles.alertBody}>{alert.body}</Text>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={alertModalStyles.dismissButton}
+              onPress={() => setActiveAlerts([])}
+            >
+              <Text style={alertModalStyles.dismissButtonText}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
+
+const alertModalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: COLORS.overlayDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  card: {
+    backgroundColor: COLORS.backgroundWhite,
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+  },
+  headerBand: {
+    backgroundColor: COLORS.backgroundRed,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.borderRed,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.textWhite,
+  },
+  alertRow: {
+    marginHorizontal: 20,
+    marginTop: 16,
+  },
+  alertTitle: {
+    fontWeight: 'bold',
+    color: COLORS.textOrange,
+  },
+  alertBody: {
+    color: COLORS.textDark,
+    marginTop: 2,
+  },
+  dismissButton: {
+    margin: 20,
+    marginTop: 16,
+    backgroundColor: COLORS.backgroundGreen,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  dismissButtonText: {
+    color: COLORS.textWhite,
+    fontWeight: 'bold',
+  },
+});
 
 const topTabStyles = StyleSheet.create({
   tabBar: {
@@ -503,7 +628,7 @@ const topTabStyles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 12,
     paddingBottom: 8,
-    backgroundColor: COLORS.backgroundW,
+    backgroundColor: COLORS.backgroundCream,
     gap: 8,
   },
   tabButton: {
@@ -514,7 +639,7 @@ const topTabStyles = StyleSheet.create({
     backgroundColor: COLORS.backgroundWhite,
   },
   tabButtonActive: {
-    backgroundColor: COLORS.textGreen,
+    backgroundColor: COLORS.backgroundGreen,
   },
   tabLabel: {
     fontWeight: 'bold',
