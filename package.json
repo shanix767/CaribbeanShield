@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "expo": "~56.0.21",
-    "expo-dev-client": "~56.0.26",
-    "expo-router": "~56.2.20",
-    "expo-status-bar": "~56.0.4",
+    "expo": "~57.0.24",
+    "expo-dev-client": "~57.0.0",
+    "expo-location": "~57.0.19",
+    "expo-router": "~57.0.22",
+    "expo-status-bar": "~57.0.0",
+    "fast-xml-parser": "^5.11.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-native": "0.85.3"
+    "react-native": "^0.86.3",
+    "react-native-maps": "1.27.2"
   },
   "overrides": {
     "react-dom": "19.2.3"
@@ -20,5 +23,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@expo/ngrok": "^4.1.0"
+  }
 }

@@ -9,14 +9,20 @@
     "ios": {
       "supportsTablet": true
     },
-    "android": {
+"android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.shanix767.CaribbeanShield"
+      "package": "com.shanix767.CaribbeanShield",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCWucgGgjTDR8ydixkLDFrEiBTJBcfFj1g"
+        }
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
