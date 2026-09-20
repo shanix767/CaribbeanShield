@@ -26,7 +26,7 @@ import { COLORS } from './theme/colors';
 // Flip any of these to true to preview that card with sample alert data
 // instead of waiting for a real event. Leave all false for normal live data.
 const TEST_MODE = {
-  hurricane: true,
+  hurricane: false,
   earthquake: false,
   volcano: false,
   flood: false,
