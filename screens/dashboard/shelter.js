@@ -133,7 +133,7 @@ export default function ShelterScreen() {
       >
         {nearbyShelters.map((entry, index) => (
           <Marker
-            key={index}
+            key={`${index}-${selectedIndex === index}`}
             coordinate={entry.shelter}
             title={entry.shelter.name}
             description={`${entry.shelter.community} — ${entry.shelter.type}`}
