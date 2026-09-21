@@ -17,7 +17,7 @@ import {
   RefreshControl,
   StyleSheet,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+//import { useFocusEffect } from "expo-router";
 import { fetchHurricaneWatchData } from "../services/hurricaneApi";
 import { COLORS } from "../theme/colors";
 
@@ -44,11 +44,11 @@ export default function HurricaneWatchScreen() {
   // useFocusEffect, not useEffect - tab/stack screens stay mounted in
   // React Navigation, so this re-runs the fetch each time the screen
   // is opened rather than only on first mount.
-  useFocusEffect(
-    useCallback(() => {
-      loadWatchData();
-    }, [loadWatchData])
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     loadWatchData();
+  //   }, [loadWatchData])
+  // );
 
   if (isLoading) {
     return (

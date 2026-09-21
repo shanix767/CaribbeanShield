@@ -107,7 +107,7 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen name="MissionDetail" component={MissionDetail} />
-        </Stack.Navigator>
+        </Stack.Navigator> 
       </NavigationContainer>
 
       <Modal

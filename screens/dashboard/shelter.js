@@ -4,7 +4,7 @@
 // services/shelters.js, and an actual road route (via OSRM) to whichever
 // one is currently selected. Shows up to 5 nearby shelters rather than just
 // the single closest one, since the nearest shelter could be full, closed,
-// or have a blocked access road during a real event - having an easy way to
+// or have a blocked access road during a real event — having an easy way to
 // see and switch to an alternative matters here.
 
 import { useState, useEffect, useCallback } from 'react';
@@ -21,22 +21,23 @@ import {
   getCurrentUserLocation,
   findNearestShelters,
   fetchRoadRoute,
-} from './services/locationApi';
-import { COLORS } from './theme/colors';
+} from '../../services/locationApi';
+import { COLORS } from '../../theme/colors';
 
 const SHELTER_COUNT = 5;
 
-export default function ShelterMapScreen() {
+export default function ShelterScreen() {
   const [userLocation, setUserLocation] = useState(null);
   const [nearbyShelters, setNearbyShelters] = useState([]); // [{shelter, straightLineDistanceKm}]
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [route, setRoute] = useState(null);
+  const [travelMode, setTravelMode] = useState('driving');
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
   // Loads the user's position and the list of nearby shelters. Only runs on
-  // initial load / manual refresh - selecting a different shelter from the
+  // initial load / manual refresh — selecting a different shelter from the
   // list does NOT re-run this, just re-fetches the route (see below).
   const loadUserAndShelters = useCallback(async () => {
     setIsLoading(true);
@@ -74,17 +75,18 @@ export default function ShelterMapScreen() {
         userLocation.latitude,
         userLocation.longitude,
         shelter.latitude,
-        shelter.longitude
+        shelter.longitude,
+        travelMode
       );
       setRoute(roadRoute);
     } catch {
-      // Road routing failing shouldn't block showing the map - fall back to
+      // Road routing failing shouldn't block showing the map — fall back to
       // no drawn route, straight-line distance still shown in the info card.
       setRoute(null);
     }
 
     setIsRouteLoading(false);
-  }, [userLocation, nearbyShelters, selectedIndex]);
+  }, [userLocation, nearbyShelters, selectedIndex, travelMode]);
 
   useEffect(() => {
     loadUserAndShelters();
@@ -134,8 +136,8 @@ export default function ShelterMapScreen() {
             key={index}
             coordinate={entry.shelter}
             title={entry.shelter.name}
-            description={`${entry.shelter.community} - ${entry.shelter.type}`}
-            pinColor={index === selectedIndex ? COLORS.markerO : COLORS.markerG}
+            description={`${entry.shelter.community} — ${entry.shelter.type}`}
+            pinColor={index === selectedIndex ? COLORS.marker : COLORS.backgroundGreenD}
             onPress={() => setSelectedIndex(index)}
           />
         ))}
@@ -189,8 +191,44 @@ export default function ShelterMapScreen() {
       <View style={styles.infoCard}>
         <Text style={styles.shelterName}>{selected.shelter.name}</Text>
         <Text style={styles.shelterDetail}>
-          {selected.shelter.community} - {selected.shelter.type}
+          {selected.shelter.community} — {selected.shelter.type}
         </Text>
+
+        <View style={styles.modeToggleRow}>
+          <TouchableOpacity
+            style={[
+              styles.modeButton,
+              travelMode === 'driving' && styles.modeButtonActive,
+            ]}
+            onPress={() => setTravelMode('driving')}
+          >
+            <Text
+              style={[
+                styles.modeButtonText,
+                travelMode === 'driving' && styles.modeButtonTextActive,
+              ]}
+            >
+              🚗 Driving
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.modeButton,
+              travelMode === 'walking' && styles.modeButtonActive,
+            ]}
+            onPress={() => setTravelMode('walking')}
+          >
+            <Text
+              style={[
+                styles.modeButtonText,
+                travelMode === 'walking' && styles.modeButtonTextActive,
+              ]}
+            >
+              🚶 Walking
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {isRouteLoading ? (
           <View style={styles.routeLoadingRow}>
@@ -199,7 +237,8 @@ export default function ShelterMapScreen() {
           </View>
         ) : route ? (
           <Text style={styles.distanceText}>
-            {route.distanceKm} km by road (~{route.durationMinutes} min drive)
+            {route.distanceKm} km {travelMode === 'walking' ? 'on foot' : 'by road'}{' '}
+            (~{route.durationMinutes} min {travelMode === 'walking' ? 'walk' : 'drive'})
           </Text>
         ) : (
           <>
@@ -207,7 +246,7 @@ export default function ShelterMapScreen() {
               ~{selected.straightLineDistanceKm} km straight-line distance
             </Text>
             <Text style={styles.offlineNote}>
-              Road route and map imagery need an internet connection - if
+              Road route and map imagery need an internet connection — if
               you're offline, this shelter's location and straight-line
               distance above are still accurate.
             </Text>
@@ -297,6 +336,31 @@ const styles = StyleSheet.create({
   shelterDetail: {
     color: COLORS.textDark,
     marginTop: 2,
+  },
+  modeToggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundCream,
+    borderWidth: 1,
+    borderColor: COLORS.borderCream,
+  },
+  modeButtonActive: {
+    backgroundColor: COLORS.backgroundGreen,
+    borderColor: COLORS.borderGreen,
+  },
+  modeButtonText: {
+    fontWeight: 'bold',
+    color: COLORS.textDark,
+  },
+  modeButtonTextActive: {
+    color: COLORS.textWhite,
   },
   distanceText: {
     color: COLORS.textDark,
