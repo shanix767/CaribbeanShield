@@ -1,41 +1,48 @@
-// screens/missions/MissionDetailScreen.js
+// screens/missions/missionDetail.js
 
-import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useGameContext } from '../../context/GameContext';
-import { HURRICANE_READY_MISSION } from './hurricane/hurricaneMission';
-import { EARTHQUAKE_AWARENESS_MISSION } from './earthquake/earthquakeMission';
-import { VOLCANIC_HAZARD_READY_MISSION } from './volcano/volcanoMission';
-import { FLASH_FLOOD_AWARE_MISSION } from './flood/floodMission';
+import { useGameContext, STAGE_ORDER } from '../../context/GameContext';
+import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
 import { COLORS } from '../../theme/colors';
 
-// Includes the stub missions too (even though they're not in
-// MissionsListScreen's ALL_MISSIONS yet) so this screen is ready for them
-// the moment they get real content and get added there.
+// Add new missions here once they're converted to the new schema.
 const MISSION_CONTENT_BY_ID = {
-  hurricaneReady: HURRICANE_READY_MISSION,
-  earthquakeAwareness: EARTHQUAKE_AWARENESS_MISSION,
-  volcanicHazardReady: VOLCANIC_HAZARD_READY_MISSION,
-  flashFloodAware: FLASH_FLOOD_AWARE_MISSION,
+  hurricaneReady: HURRICANE_MISSION_CONTENT,
 };
+
+// Display labels and icons for each stage — purely cosmetic, kept out of
+// the content files since every mission's stages are named the same way.
+const STAGE_DISPLAY = {
+  learn: { icon: '🧠', label: 'Learn' },
+  plan: { icon: '📝', label: 'Plan' },
+  prepare: { icon: '🎒', label: 'Prepare' },
+  prove: { icon: '✅', label: 'Prove Readiness' },
+  respond: { icon: '🚨', label: 'Respond' },
+  recover: { icon: '🔄', label: 'Recover' },
+};
+
+// A stage is only worth entering once every one of its activities has
+// real content — the remaining five stages of Level 1 are stubbed with
+// content: null for now (see missionContent/hurricane/level1.js).
+function stageHasRealContent(stageContent) {
+  return stageContent.activities.every((activity) => activity.content !== null);
+}
+
+function isStageComplete(stageProgress, stageContent) {
+  return stageProgress.completedActivityIds.length === stageContent.activities.length;
+}
 
 export default function MissionDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { missionId } = route.params;
-  const { state, dispatch } = useGameContext();
-  const [justCompletedLevel, setJustCompletedLevel] = useState(null);
+  const { state } = useGameContext();
 
   const mission = MISSION_CONTENT_BY_ID[missionId];
-  const progress = state.missions[missionId] || {
-    currentLevel: 0,
-    completedLevels: [],
-    xpEarned: 0,
-    badgeEarned: false,
-  };
+  const missionProgress = state.missions[missionId];
 
-  if (!mission) {
+  if (!mission || !missionProgress) {
     return (
       <View style={styles.centeredContainer}>
         <Text style={styles.errorText}>Mission "{missionId}" not found.</Text>
@@ -43,16 +50,7 @@ export default function MissionDetailScreen() {
     );
   }
 
-  function handleMarkComplete(level) {
-    dispatch({
-      type: 'COMPLETE_LEVEL',
-      missionId: mission.missionId,
-      level: level.level,
-      xpReward: level.xpReward,
-      isFinalLevel: !!level.isFinalLevel,
-    });
-    setJustCompletedLevel(level.level);
-  }
+  const levelNumbers = Object.keys(mission.levels).map(Number).sort((a, b) => a - b);
 
   return (
     <ScrollView style={styles.screenContainer} contentContainerStyle={styles.scrollContent}>
@@ -64,57 +62,102 @@ export default function MissionDetailScreen() {
       <Text style={styles.missionTitle}>{mission.title}</Text>
       <Text style={styles.missionDescription}>{mission.description}</Text>
 
-      {progress.badgeEarned && (
+      {missionProgress.badgesEarned.length > 0 && (
         <View style={styles.badgeBanner}>
           <Text style={styles.badgeBannerText}>
-            🏅 Badge earned: {mission.levels.find((l) => l.isFinalLevel)?.badgeName}
+            🏅 Badges earned: {missionProgress.badgesEarned.length}
           </Text>
         </View>
       )}
 
-      {mission.levels.length === 0 && (
-        <Text style={styles.emptyText}>This mission doesn't have content yet.</Text>
-      )}
+      {levelNumbers.map((levelNumber) => {
+        const levelContent = mission.levels[levelNumber];
+        const levelProgress = missionProgress.levels[levelNumber] || {
+          completed: false,
+          stages: {},
+        };
 
-      {mission.levels.map((level) => {
-        const isCompleted = progress.completedLevels.includes(level.level);
-        const isNextUp = !isCompleted && level.level === progress.currentLevel + 1;
-        const isLocked = !isCompleted && !isNextUp;
+        // Level 1 is always unlocked. Level N unlocks once Level N-1's
+        // badge has been earned — not reachable yet since only Level 1
+        // exists, but this keeps the screen correct as levels get added.
+        const previousLevelNumber = levelNumber - 1;
+        const previousLevelBadgeId = mission.levels[previousLevelNumber]?.badgeId;
+        const isLevelUnlocked =
+          levelNumber === levelNumbers[0] ||
+          missionProgress.badgesEarned.includes(previousLevelBadgeId);
 
         return (
           <View
-            key={level.level}
-            style={[
-              styles.levelCard,
-              isCompleted && styles.levelCardCompleted,
-              isLocked && styles.levelCardLocked,
-            ]}
+            key={levelNumber}
+            style={[styles.levelCard, !isLevelUnlocked && styles.levelCardLocked]}
           >
             <Text style={styles.levelTitle}>
-              Level {level.level}: {level.title}
-              {isCompleted ? ' ✓' : ''}
+              Level {levelNumber}: {levelContent.title}
+              {levelProgress.completed ? ' ✓' : ''}
             </Text>
-            <Text style={styles.levelDescription}>{level.description}</Text>
-            <Text style={styles.levelXp}>{level.xpReward} XP</Text>
 
-            {isNextUp && (
-              <TouchableOpacity style={styles.markCompleteButton} onPress={() => handleMarkComplete(level)}>
-                <Text style={styles.markCompleteButtonText}>
-                  Mark Complete (stub — real content coming later)
-                </Text>
-              </TouchableOpacity>
+            {!isLevelUnlocked && (
+              <Text style={styles.lockedLabel}>
+                🔒 Complete Level {previousLevelNumber} first
+              </Text>
             )}
 
-            {isLocked && <Text style={styles.lockedLabel}>🔒 Complete the previous level first</Text>}
+            {isLevelUnlocked &&
+              STAGE_ORDER.map((stageName, stageIndex) => {
+                const stageContent = levelContent.stages[stageName];
+                const stageProgress = levelProgress.stages[stageName] || {
+                  completedActivityIds: [],
+                  xpEarned: 0,
+                };
+                const hasRealContent = stageHasRealContent(stageContent);
+                const stageComplete = isStageComplete(stageProgress, stageContent);
+
+                // A stage unlocks once the previous stage in the sequence
+                // is fully complete — Learn is always unlocked first.
+                const previousStageName = STAGE_ORDER[stageIndex - 1];
+                const previousStageComplete =
+                  stageIndex === 0 ||
+                  isStageComplete(
+                    levelProgress.stages[previousStageName] || { completedActivityIds: [] },
+                    levelContent.stages[previousStageName]
+                  );
+
+                const isEnterable = hasRealContent && previousStageComplete;
+
+                return (
+                  <TouchableOpacity
+                    key={stageName}
+                    style={[styles.stageRow, stageComplete && styles.stageRowComplete]}
+                    disabled={!isEnterable}
+                    onPress={() =>
+                      navigation.navigate('ActivityPlayer', {
+                        missionId,
+                        level: levelNumber,
+                        stage: stageName,
+                      })
+                    }
+                  >
+                    <Text style={styles.stageIcon}>{STAGE_DISPLAY[stageName].icon}</Text>
+                    <View style={styles.stageInfo}>
+                      <Text style={styles.stageLabel}>
+                        {STAGE_DISPLAY[stageName].label}
+                        {stageComplete ? ' ✓' : ''}
+                      </Text>
+                      <Text style={styles.stageProgressText}>
+                        {hasRealContent
+                          ? `${stageProgress.completedActivityIds.length}/${stageContent.activities.length} activities`
+                          : 'Coming soon'}
+                      </Text>
+                    </View>
+                    {!isEnterable && hasRealContent && (
+                      <Text style={styles.stageLockIcon}>🔒</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
           </View>
         );
       })}
-
-      {justCompletedLevel != null && (
-        <Text style={styles.confirmationText}>
-          Level {justCompletedLevel} marked complete — progress saved.
-        </Text>
-      )}
     </ScrollView>
   );
 }
@@ -137,10 +180,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: COLORS.textOrange,
-  },
-  emptyText: {
-    color: COLORS.textGray,
-    fontStyle: 'italic',
   },
   backLink: {
     color: COLORS.textGreen,
@@ -178,10 +217,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
-  levelCardCompleted: {
-    borderWidth: 2,
-    borderColor: COLORS.borderGreen,
-  },
   levelCardLocked: {
     opacity: 0.5,
   },
@@ -189,38 +224,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.textDark,
-  },
-  levelDescription: {
-    color: COLORS.textGray,
-    marginTop: 4,
-  },
-  levelXp: {
-    color: COLORS.textOrange,
-    fontWeight: 'bold',
-    marginTop: 6,
-  },
-  markCompleteButton: {
-    marginTop: 12,
-    backgroundColor: COLORS.backgroundGreen,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  markCompleteButtonText: {
-    color: COLORS.textWhite,
-    fontWeight: 'bold',
-    fontSize: 12,
-    textAlign: 'center',
+    marginBottom: 10,
   },
   lockedLabel: {
     color: COLORS.textGray,
     fontSize: 12,
-    marginTop: 8,
   },
-  confirmationText: {
-    color: COLORS.textGreen,
+  stageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundCream,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  stageRowComplete: {
+    borderWidth: 1,
+    borderColor: COLORS.borderGreen,
+  },
+  stageIcon: {
+    fontSize: 22,
+    marginRight: 12,
+  },
+  stageInfo: {
+    flex: 1,
+  },
+  stageLabel: {
+    fontSize: 14,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 8,
+    color: COLORS.textDark,
+  },
+  stageProgressText: {
+    fontSize: 12,
+    color: COLORS.textGray,
+    marginTop: 2,
+  },
+  stageLockIcon: {
+    fontSize: 16,
   },
 });

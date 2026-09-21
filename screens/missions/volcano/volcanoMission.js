@@ -1,4 +1,4 @@
-// screens/missions/volcano/volcanoMission.js
+// volcanoMission.js
 //
 // STUB — structure only, no real content yet. Your project notes flag this
 // one as sourcing-constrained (limited UWI-SRC public corpus), so it's

@@ -1,15 +1,19 @@
-// screens/missions/MissionsListScreen.js
+// screens/missions/missionsList.js
 
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useGameContext, getPlayerLevel, getReadinessPercentage } from '../../context/GameContext';
-import { HURRICANE_READY_MISSION } from './hurricane/hurricaneMission';
+import {
+  useGameContext,
+  getPlayerLevel,
+  getReadinessPercentage,
+  getMissionXp,
+} from '../../context/GameContext';
+import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
 import { COLORS } from '../../theme/colors';
 
-// Add new missions here as their folders get real content (see
-// screens/missions/earthquake/, volcano/, flood/ — currently stubs, not
-// included here yet on purpose).
-const ALL_MISSIONS = [HURRICANE_READY_MISSION];
+// Add new missions here once they're converted to the new level->stage->
+// activity schema (see missionContent/hurricane/ for the pattern).
+const ALL_MISSIONS = [HURRICANE_MISSION_CONTENT];
 
 export default function MissionsListScreen() {
   const navigation = useNavigation();
@@ -34,14 +38,10 @@ export default function MissionsListScreen() {
       </View>
 
       {ALL_MISSIONS.map((mission) => {
-        const progress = state.missions[mission.missionId] || {
-          currentLevel: 0,
-          completedLevels: [],
-          xpEarned: 0,
-          badgeEarned: false,
-        };
-        const totalLevels = mission.levels.length;
-        const levelsDone = progress.completedLevels.length;
+        const missionProgress = state.missions[mission.missionId];
+        const badgesEarnedCount = missionProgress ? missionProgress.badgesEarned.length : 0;
+        const totalLevelsBuilt = Object.keys(mission.levels).length;
+        const missionXp = getMissionXp(state, mission.missionId);
 
         return (
           <TouchableOpacity
@@ -58,17 +58,18 @@ export default function MissionsListScreen() {
               <View style={styles.progressRow}>
                 <View style={styles.progressBarTrack}>
                   <View
-                    style={[styles.progressBarFill, { width: `${(levelsDone / totalLevels) * 100}%` }]}
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${(badgesEarnedCount / totalLevelsBuilt) * 100}%` },
+                    ]}
                   />
                 </View>
                 <Text style={styles.progressLabel}>
-                  {levelsDone}/{totalLevels}
+                  {badgesEarnedCount}/{totalLevelsBuilt} badges
                 </Text>
               </View>
 
-              <Text style={styles.xpLabel}>{progress.xpEarned} XP earned</Text>
-
-              {progress.badgeEarned && <Text style={styles.badgeEarnedLabel}>🏅 Badge earned</Text>}
+              <Text style={styles.xpLabel}>{missionXp} XP earned</Text>
             </View>
           </TouchableOpacity>
         );
@@ -176,11 +177,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 13,
     marginTop: 6,
-  },
-  badgeEarnedLabel: {
-    color: COLORS.textGreen,
-    fontWeight: 'bold',
-    fontSize: 13,
-    marginTop: 4,
   },
 });

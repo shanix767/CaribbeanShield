@@ -1,7 +1,4 @@
-// screens/missions/flood/floodMission.js
-//
-// STUB — structure only, no real content yet. Not yet added to
-// MissionsListScreen's ALL_MISSIONS list.
+// floodMission.js
 
 export const FLASH_FLOOD_AWARE_MISSION = {
   missionId: 'flashFloodAware',

@@ -19,15 +19,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { GameProvider } from './context/GameContext';
-
 import HazardWatchScreen from './screens/dashboard/hazardWatch';
 import ShelterScreen from './screens/dashboard/shelter';
 import MissionsListScreen from './screens/missions/missionsList';
 import MissionDetailScreen from './screens/missions/missionDetail';
-
+import ActivityPlayerScreen from './screens/missions/activityPlayer';
 import FirebaseTestScreen from './screens/FirebaseTestScreen'; // TEMPORARY
-
-
 
 import { fetchHurricaneWatchData } from './services/hurricaneApi';
 import { fetchRecentEarthquakes } from './services/earthquakeApi';
@@ -114,6 +111,7 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
+          <Stack.Screen name="ActivityPlayer" component={ActivityPlayerScreen} />
         </Stack.Navigator>
       </NavigationContainer>
 
