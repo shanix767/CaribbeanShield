@@ -9,7 +9,8 @@
     "ios": {
       "supportsTablet": true
     },
-"android": {
+    "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -22,7 +23,10 @@
           "apiKey": "AIzaSyC6WmTE4onH3GjiIV5zQL39VomMki8iQvw"
         }
       },
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,6 +35,10 @@
       "eas": {
         "projectId": "740612ed-19e3-4115-bb98-8fad2b7fd5c7"
       }
-    }
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
+    ]
   }
 }
