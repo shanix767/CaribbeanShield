@@ -19,10 +19,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { GameProvider } from './context/GameContext';
-import HazardWatch from './screens/dashboard/hazardWatch';
-import Shelter from './screens/dashboard/shelter';
-import MissionsList from './screens/missions/missionsList';
-import MissionDetail from './screens/missions/missionDetail';
+
+import HazardWatchScreen from './screens/dashboard/hazardWatch';
+import ShelterScreen from './screens/dashboard/shelter';
+import MissionsListScreen from './screens/missions/missionsList';
+import MissionDetailScreen from './screens/missions/missionDetail';
+
+import FirebaseTestScreen from './screens/FirebaseTestScreen'; // TEMPORARY
+
+
 
 import { fetchHurricaneWatchData } from './services/hurricaneApi';
 import { fetchRecentEarthquakes } from './services/earthquakeApi';
@@ -48,9 +53,11 @@ function MainTabs() {
         tabBarLabelStyle: { fontWeight: 'bold' },
       }}
     >
-      <Tab.Screen name="HazardWatch" component={HazardWatch} options={{ title: 'Hazard Watch' }} />
-      <Tab.Screen name="Shelter" component={Shelter} options={{ title: 'Nearest Shelter' }} />
-      <Tab.Screen name="Missions" component={MissionsList} options={{ title: 'Missions' }} />
+      <Tab.Screen name="HazardWatch" component={HazardWatchScreen} options={{ title: 'Hazard Watch' }} />
+      <Tab.Screen name="Shelter" component={ShelterScreen} options={{ title: 'Nearest Shelter' }} />
+      <Tab.Screen name="Missions" component={MissionsListScreen} options={{ title: 'Missions' }} />
+      <Tab.Screen name="FirebaseTest" component={FirebaseTestScreen} options={{ title: '🔥 FB Test' }} />
+      {/* TEMPORARY tab above — remove once Firebase is confirmed working */}
     </Tab.Navigator>
   );
 }
@@ -106,7 +113,7 @@ export default function App() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />
-          <Stack.Screen name="MissionDetail" component={MissionDetail} />
+          <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
         </Stack.Navigator>
       </NavigationContainer>
 
