@@ -18,7 +18,7 @@ const CURRENT_STORMS_URL = "https://www.nhc.noaa.gov/CurrentStorms.json";
 // TODO: move this to an env variable (e.g. via expo-constants + app.config.js)
 // before this ships anywhere public - an OpenWeatherMap key is free but should
 // still not be hardcoded in source control.
-const OPENWEATHER_API_KEY = "92e6529cafbdb2c16607344a1494daf8 ";
+const OPENWEATHER_API_KEY = "92e6529cafbdb2c16607344a1494daf8";
 
 // Roseau, Dominica - used both as the weather lookup point and as the
 // reference point for storm-distance calculations.

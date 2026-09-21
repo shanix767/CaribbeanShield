@@ -19,7 +19,7 @@
       "package": "com.shanix767.CaribbeanShield",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyCWucgGgjTDR8ydixkLDFrEiBTJBcfFj1g"
+          "apiKey": "AIzaSyC6WmTE4onH3GjiIV5zQL39VomMki8iQvw"
         }
       },
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
