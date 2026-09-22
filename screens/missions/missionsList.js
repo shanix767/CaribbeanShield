@@ -8,12 +8,8 @@ import {
   getReadinessPercentage,
   getMissionXp,
 } from '../../context/GameContext';
-import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
+import { ALL_MISSIONS } from '../../missionContent';
 import { COLORS } from '../../theme/colors';
-
-// Add new missions here once they're converted to the new level->stage->
-// activity schema (see missionContent/hurricane/ for the pattern).
-const ALL_MISSIONS = [HURRICANE_MISSION_CONTENT];
 
 export default function MissionsListScreen() {
   const navigation = useNavigation();
@@ -36,6 +32,13 @@ export default function MissionsListScreen() {
           <Text style={styles.readinessLabel}>{readinessPercent}% Ready</Text>
         </View>
       </View>
+
+      <TouchableOpacity
+        style={styles.badgesLink}
+        onPress={() => navigation.navigate('BadgePage')}
+      >
+        <Text style={styles.badgesLinkText}>🏅 View All Badges</Text>
+      </TouchableOpacity>
 
       {ALL_MISSIONS.map((mission) => {
         const missionProgress = state.missions[mission.missionId];
@@ -125,6 +128,18 @@ const styles = StyleSheet.create({
     color: COLORS.textWhite,
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  badgesLink: {
+    backgroundColor: COLORS.backgroundWhite,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  badgesLinkText: {
+    color: COLORS.textDark,
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   missionCard: {
     flexDirection: 'row',

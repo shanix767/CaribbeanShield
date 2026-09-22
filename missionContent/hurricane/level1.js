@@ -20,8 +20,8 @@
 export const HURRICANE_LEVEL_1 = {
   levelNumber: 1,
   title: 'Know the Storm',
-  badgeId: 'stormWatcher',
-  badgeName: 'Storm Watcher',
+  badgeId: 'knowTheStorm',
+  badgeName: 'Know The Storm',
   completionBonusXp: 25,
   stages: {
     learn: {

@@ -23,18 +23,15 @@ import {
   getStagePossibleXp,
   getLevelEarnedXp,
   getLevelPossibleXp,
+  hasCompletedMission,
 } from '../../context/GameContext';
-import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
+import { MISSION_CONTENT_BY_ID } from '../../missionContent';
 import Lesson from '../../components/activities/Lesson';
 import Quiz from '../../components/activities/Quiz';
 import Checklist from '../../components/activities/Checklist';
 import Matching from '../../components/activities/Matching';
 import Scenario from '../../components/activities/Scenario';
 import { COLORS } from '../../theme/colors';
-
-const MISSION_CONTENT_BY_ID = {
-  hurricaneReady: HURRICANE_MISSION_CONTENT,
-};
 
 const STAGE_DISPLAY_LABELS = {
   learn: 'Learn',
@@ -110,6 +107,44 @@ export default function ActivityPlayerScreen() {
           level,
           badgeId: levelContent.badgeId,
         });
+
+        // Check whether THIS level was the last one needed to complete
+        // the whole mission - same "add the fresh value to what's
+        // already in state" approach as the level score check above,
+        // since this level's badge isn't in state yet either.
+        const allLevelBadgeIds = Object.values(mission.levels).map((lvl) => lvl.badgeId);
+        const badgesEarnedSoFar = missionProgress ? missionProgress.badgesEarned : [];
+        const badgesEarnedIncludingThisLevel = [...badgesEarnedSoFar, levelContent.badgeId];
+        const isMissionNowComplete = allLevelBadgeIds.every((badgeId) =>
+          badgesEarnedIncludingThisLevel.includes(badgeId)
+        );
+
+        const newlyEarnedBadges = [
+          { badgeId: levelContent.badgeId, badgeName: levelContent.badgeName },
+        ];
+
+        if (isMissionNowComplete && mission.missionBadge) {
+          dispatch({
+            type: 'COMPLETE_MISSION',
+            missionId,
+            badgeId: mission.missionBadge.badgeId,
+          });
+          newlyEarnedBadges.push({
+            badgeId: mission.missionBadge.badgeId,
+            badgeName: mission.missionBadge.badgeName,
+          });
+        }
+
+        // navigate (not goBack) so MissionDetailScreen's params update
+        // with the just-earned badge(s), which is what triggers its
+        // popup. React Navigation pops back to the already-mounted
+        // MissionDetail screen in the stack and merges these params in,
+        // rather than pushing a duplicate instance.
+        navigation.navigate('MissionDetail', {
+          missionId,
+          justEarnedBadges: newlyEarnedBadges,
+        });
+        return;
       }
       // If it's not a perfect score, no badge is awarded - the player can
       // re-enter this stage (or any earlier stage) to retry activities

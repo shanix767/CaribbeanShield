@@ -48,8 +48,8 @@ export const HURRICANE_READY_MISSION = {
         'Put together a plan for how your household stays in contact and reunites.',
       content: null,
       isFinalLevel: true,
-      badgeId: 'stormWatcher',
-      badgeName: 'Storm Watcher',
+      badgeId: 'knowTheStorm',
+      badgeName: 'Know the Storm',
     },
   ],
 };

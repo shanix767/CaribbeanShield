@@ -60,13 +60,21 @@ function createEmptyLevelProgress() {
 // Starting state for a mission that hasn't been touched yet.
 function createEmptyMissionProgress() {
   return {
-    badgesEarned: [], // one badge id per completed level, e.g. ['stormWatcher']
+    badgesEarned: [], // one badge id per completed level, e.g. ['knowTheStorm']
     levels: {}, // filled in lazily per level as the player reaches it
   };
 }
 
 const initialState = {
   parish: null,
+  onboardingCompleted: false,
+  // { score, maxScore, completedAt } once taken, otherwise null. Kept
+  // OUTSIDE the missions/parish fields RESET_PROGRESS wipes - see that
+  // case below - so running a new evaluation participant through
+  // onboarding again doesn't silently erase the previous participant's
+  // score before it's been recorded elsewhere.
+  pretestScore: null,
+  posttestScore: null,
   missions: {
     // Seeded here so the UI can render a mission card immediately, even
     // before the player has done anything with it. New missions get added
@@ -85,6 +93,26 @@ function gameReducer(state, action) {
 
     case 'SET_PARISH': {
       return { ...state, parish: action.parish };
+    }
+
+    case 'COMPLETE_ONBOARDING': {
+      return { ...state, onboardingCompleted: true };
+    }
+
+    case 'RECORD_PRETEST_SCORE': {
+      const { score, maxScore } = action;
+      return {
+        ...state,
+        pretestScore: { score, maxScore, completedAt: new Date().toISOString() },
+      };
+    }
+
+    case 'RECORD_POSTTEST_SCORE': {
+      const { score, maxScore } = action;
+      return {
+        ...state,
+        posttestScore: { score, maxScore, completedAt: new Date().toISOString() },
+      };
     }
 
     case 'COMPLETE_ACTIVITY': {
@@ -168,11 +196,44 @@ function gameReducer(state, action) {
       };
     }
 
+    case 'COMPLETE_MISSION': {
+      // Dispatched when every level's badge has been earned - awards the
+      // mission-wide badge (e.g. "Hurricane Ready"), separate from any
+      // single level's own badge. Uses the same badgesEarned array as
+      // COMPLETE_LEVEL - this badge just isn't tied to a specific level.
+      const { missionId, badgeId } = action;
+      const existingMissionProgress = state.missions[missionId] || createEmptyMissionProgress();
+
+      if (existingMissionProgress.badgesEarned.includes(badgeId)) {
+        return state;
+      }
+
+      return {
+        ...state,
+        missions: {
+          ...state.missions,
+          [missionId]: {
+            ...existingMissionProgress,
+            badgesEarned: [...existingMissionProgress.badgesEarned, badgeId],
+          },
+        },
+      };
+    }
+
     case 'RESET_PROGRESS': {
-      // Used by the Profile screen's Reset Progress button - needed for
-      // running multiple evaluation sessions without old progress carrying
-      // over between participants.
-      return initialState;
+      // Used to prepare the app for a new evaluation participant. Resets
+      // parish, onboarding status, and all mission progress - so the next
+      // person goes through onboarding (including taking their own fresh
+      // pretest) from scratch - but deliberately carries the CURRENT
+      // pretestScore/posttestScore forward rather than wiping them to
+      // null. That gives the researcher a window to read and record the
+      // previous participant's score before it's overwritten by the next
+      // person's own pretest; Reset Progress alone never destroys it.
+      return {
+        ...initialState,
+        pretestScore: state.pretestScore,
+        posttestScore: state.posttestScore,
+      };
     }
 
     default:
@@ -242,7 +303,7 @@ export function GameProvider({ children }) {
   }, [state, hasLoadedSavedState]);
 
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={{ state, dispatch, hasLoadedSavedState }}>
       {children}
     </GameContext.Provider>
   );

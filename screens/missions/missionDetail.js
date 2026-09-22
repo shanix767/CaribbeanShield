@@ -1,6 +1,7 @@
 // screens/missions/missionDetail.js
 
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   useGameContext,
@@ -11,13 +12,9 @@ import {
   getLevelEarnedXp,
   getLevelPossibleXp,
 } from '../../context/GameContext';
-import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
+import { MISSION_CONTENT_BY_ID } from '../../missionContent';
+import { getBadgeImage } from '../../missionContent/badges';
 import { COLORS } from '../../theme/colors';
-
-// Add new missions here once they're converted to the new schema.
-const MISSION_CONTENT_BY_ID = {
-  hurricaneReady: HURRICANE_MISSION_CONTENT,
-};
 
 // Display labels and icons for each stage - purely cosmetic, kept out of
 // the content files since every mission's stages are named the same way.
@@ -42,6 +39,20 @@ export default function MissionDetailScreen() {
   const route = useRoute();
   const { missionId } = route.params;
   const { state } = useGameContext();
+  const [justEarnedBadges, setJustEarnedBadges] = useState(null);
+
+  // ActivityPlayerScreen navigates back here with justEarnedBadges set
+  // (an array - usually one badge, but two if finishing the final level
+  // also completes the whole mission) when a badge was just earned.
+  // Capture it into local state to drive the popup, then clear the param
+  // so it doesn't re-trigger on a later re-render or re-navigation to
+  // this same screen.
+  useEffect(() => {
+    if (route.params?.justEarnedBadges) {
+      setJustEarnedBadges(route.params.justEarnedBadges);
+      navigation.setParams({ justEarnedBadges: undefined });
+    }
+  }, [route.params?.justEarnedBadges]);
 
   const mission = MISSION_CONTENT_BY_ID[missionId];
   const missionProgress = state.missions[missionId];
@@ -57,6 +68,7 @@ export default function MissionDetailScreen() {
   const levelNumbers = Object.keys(mission.levels).map(Number).sort((a, b) => a - b);
 
   return (
+    <>
     <ScrollView style={styles.screenContainer} contentContainerStyle={styles.scrollContent}>
       <TouchableOpacity onPress={() => navigation.goBack()}>
         <Text style={styles.backLink}>← Back to Missions</Text>
@@ -67,11 +79,14 @@ export default function MissionDetailScreen() {
       <Text style={styles.missionDescription}>{mission.description}</Text>
 
       {missionProgress.badgesEarned.length > 0 && (
-        <View style={styles.badgeBanner}>
+        <TouchableOpacity
+          style={styles.badgeBanner}
+          onPress={() => navigation.navigate('BadgePage')}
+        >
           <Text style={styles.badgeBannerText}>
-            🏅 Badges earned: {missionProgress.badgesEarned.length}
+            🏅 Badges earned: {missionProgress.badgesEarned.length} - tap to view
           </Text>
-        </View>
+        </TouchableOpacity>
       )}
 
       {levelNumbers.map((levelNumber) => {
@@ -178,6 +193,52 @@ export default function MissionDetailScreen() {
         );
       })}
     </ScrollView>
+
+      <Modal
+        visible={!!justEarnedBadges}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setJustEarnedBadges(null)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupHeading}>
+              {justEarnedBadges && justEarnedBadges.length > 1 ? 'Badges Earned!' : 'Badge Earned!'}
+            </Text>
+
+            {(justEarnedBadges || []).map((badge) => {
+              const image = getBadgeImage(badge.badgeId);
+              return (
+                <View key={badge.badgeId} style={styles.popupBadgeRow}>
+                  {image ? (
+                    <Image source={image} style={styles.popupBadgeImage} resizeMode="contain" />
+                  ) : (
+                    <View style={styles.popupBadgeImagePlaceholder}>
+                      <Text style={styles.popupBadgeImagePlaceholderText}>🏅</Text>
+                    </View>
+                  )}
+                  <Text style={styles.popupBadgeName}>{badge.badgeName}</Text>
+                </View>
+              );
+            })}
+
+            <TouchableOpacity
+              style={styles.popupPrimaryButton}
+              onPress={() => {
+                setJustEarnedBadges(null);
+                navigation.navigate('BadgePage');
+              }}
+            >
+              <Text style={styles.popupPrimaryButtonText}>View Badges</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setJustEarnedBadges(null)}>
+              <Text style={styles.popupDismiss}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -285,5 +346,65 @@ const styles = StyleSheet.create({
   },
   stageLockIcon: {
     fontSize: 16,
+  },
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: COLORS.overlayDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  popupCard: {
+    backgroundColor: COLORS.backgroundWhite,
+    borderRadius: 16,
+    padding: 28,
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+  },
+  popupBadgeRow: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  popupBadgeImage: {
+    width: 88,
+    height: 88,
+    marginBottom: 8,
+  },
+  popupBadgeImagePlaceholder: {
+    width: 88,
+    height: 88,
+    marginBottom: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popupBadgeImagePlaceholderText: {
+    fontSize: 48,
+  },
+  popupHeading: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.textGreen,
+    marginBottom: 16,
+  },
+  popupBadgeName: {
+    fontSize: 16,
+    color: COLORS.textDark,
+  },
+  popupPrimaryButton: {
+    backgroundColor: COLORS.backgroundGreenD,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  popupPrimaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  popupDismiss: {
+    color: COLORS.textGray,
+    fontSize: 14,
   },
 });
