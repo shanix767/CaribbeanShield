@@ -14,7 +14,7 @@ export default function LessonActivity({ activity, onComplete }) {
   const { body, bullets } = activity.content;
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>{activity.title}</Text>
         <Text style={styles.body}>{body}</Text>
@@ -27,7 +27,7 @@ export default function LessonActivity({ activity, onComplete }) {
         ))}
       </ScrollView>
 
-      <TouchableOpacity style={styles.continueButton} onPress={onComplete}>
+      <TouchableOpacity style={styles.continueButton} onPress={() => onComplete(activity.xpReward)}>
         <Text style={styles.continueButtonText}>Continue (+{activity.xpReward} XP)</Text>
       </TouchableOpacity>
     </SafeAreaView>

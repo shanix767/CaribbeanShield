@@ -10,8 +10,16 @@
 // Every mission now follows the same six-stage shape per level:
 // Learn -> Plan -> Prepare -> Prove -> Respond -> Recover. Each level
 // awards its own badge on completion (missions can therefore earn several
-// badges, not just one), and progress is tracked per individual activity
-// within each stage - not just "level done or not."
+// badges, not just one).
+//
+// XP is stored PER ACTIVITY (activityId -> xp earned on the most recent
+// attempt), not just a running stage total. This is what makes retrying
+// possible: redoing an activity overwrites its stored XP with the new
+// attempt's result rather than being blocked or adding on top of the old
+// value - the player's score always reflects their latest attempt, and a
+// level's badge is only awarded once every activity's XP sums to that
+// level's full possible total (see getLevelEarnedXp/getLevelPossibleXp
+// and how ActivityPlayerScreen uses them).
 //
 // Persists to AsyncStorage so progress survives closing the app, and loads
 // that saved progress back in on startup.
@@ -30,8 +38,7 @@ export const STAGE_ORDER = ['learn', 'plan', 'prepare', 'prove', 'respond', 'rec
 // Starting state for a stage nobody has touched yet.
 function createEmptyStageProgress() {
   return {
-    completedActivityIds: [],
-    xpEarned: 0,
+    activityXp: {}, // activityId -> xp earned on the most recent attempt
   };
 }
 
@@ -83,24 +90,27 @@ function gameReducer(state, action) {
     case 'COMPLETE_ACTIVITY': {
       // Dispatched every time the player finishes one activity inside one
       // stage of one level - e.g. finishing the "Hurricane Hazards Quiz"
-      // inside Level 1's Learn stage. This is the fine-grained progress
-      // unit everything else (XP, Readiness Score) is built from.
+      // inside Level 1's Learn stage. xpReward here is however much XP
+      // THIS ATTEMPT actually earned (computed by the activity component
+      // itself based on correctness - see components/activities/), not
+      // necessarily the activity's full possible XP.
+      //
+      // Deliberately allows re-completing an already-attempted activity -
+      // this is what makes retrying to improve a score possible. The
+      // stored value for that activity is simply overwritten with this
+      // attempt's result, so a player's score always reflects their most
+      // recent attempt, not their first or their best.
       const { missionId, level, stage, activityId, xpReward } = action;
       const existingMissionProgress = state.missions[missionId] || createEmptyMissionProgress();
       const existingLevelProgress =
         existingMissionProgress.levels[level] || createEmptyLevelProgress();
       const existingStageProgress = existingLevelProgress.stages[stage];
 
-      // Guard against double-counting XP if an activity somehow gets
-      // completed twice (e.g. a screen re-fires the action on re-render,
-      // or the player backs out and re-enters an already-done activity).
-      if (existingStageProgress.completedActivityIds.includes(activityId)) {
-        return state;
-      }
-
       const updatedStageProgress = {
-        completedActivityIds: [...existingStageProgress.completedActivityIds, activityId],
-        xpEarned: existingStageProgress.xpEarned + xpReward,
+        activityXp: {
+          ...existingStageProgress.activityXp,
+          [activityId]: xpReward,
+        },
       };
 
       const updatedLevelProgress = {
@@ -127,10 +137,11 @@ function gameReducer(state, action) {
     }
 
     case 'COMPLETE_LEVEL': {
-      // Dispatched once, when the player finishes a level's final Recover
-      // activity - this is what actually awards the level's badge.
-      // Finishing individual activities (above) does NOT award a badge by
-      // itself; this action is the explicit "level complete" moment.
+      // Dispatched only when the player finishes a level's final Recover
+      // activity AND their total earned XP for the level equals the
+      // level's full possible XP - see ActivityPlayerScreen for that
+      // check. This action itself doesn't re-verify the score; it just
+      // records the badge once told to.
       const { missionId, level, badgeId } = action;
       const existingMissionProgress = state.missions[missionId] || createEmptyMissionProgress();
       const existingLevelProgress =
@@ -171,6 +182,27 @@ function gameReducer(state, action) {
 
 const GameContext = createContext(null);
 
+// A saved state is only usable if every stage in it has the current
+// activityXp shape - a save from before this shape changed (e.g. an old
+// completedActivityIds/xpEarned stage) would otherwise crash every helper
+// in this file the moment the app tries to read it. Rather than requiring
+// a manual storage clear whenever this shape changes again in the future,
+// an incompatible save is just treated as if there were no save at all -
+// the app starts fresh from initialState instead of crashing.
+function isSavedStateCompatible(savedState) {
+  if (!savedState || !savedState.missions) return false;
+
+  return Object.values(savedState.missions).every((mission) => {
+    if (!mission.levels) return true; // a mission with no levels touched yet is fine
+    return Object.values(mission.levels).every((level) => {
+      if (!level.stages) return false;
+      return Object.values(level.stages).every(
+        (stage) => stage.activityXp !== undefined
+      );
+    });
+  });
+}
+
 export function GameProvider({ children }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [hasLoadedSavedState, setHasLoadedSavedState] = useState(false);
@@ -181,7 +213,12 @@ export function GameProvider({ children }) {
       try {
         const savedJson = await AsyncStorage.getItem(GAME_STATE_STORAGE_KEY);
         if (savedJson) {
-          dispatch({ type: 'LOAD_STATE', savedState: JSON.parse(savedJson) });
+          const parsedState = JSON.parse(savedJson);
+          if (isSavedStateCompatible(parsedState)) {
+            dispatch({ type: 'LOAD_STATE', savedState: parsedState });
+          }
+          // An incompatible save is silently skipped - the app just
+          // proceeds with initialState, same as a fresh install.
         }
       } catch {
         // Corrupted or missing save - just start fresh from initialState.
@@ -226,12 +263,16 @@ export function useGameContext() {
 // just convenient calculations screens will want often (leaderboard,
 // badges screen, mission detail, tier display).
 
+function sumStageXp(stageProgress) {
+  return Object.values(stageProgress.activityXp).reduce((sum, xp) => sum + xp, 0);
+}
+
 export function getTotalXp(state) {
   let total = 0;
   Object.values(state.missions).forEach((mission) => {
     Object.values(mission.levels).forEach((level) => {
       Object.values(level.stages).forEach((stage) => {
-        total += stage.xpEarned;
+        total += sumStageXp(stage);
       });
     });
   });
@@ -248,14 +289,59 @@ export function getMissionXp(state, missionId) {
   let total = 0;
   Object.values(missionProgress.levels).forEach((level) => {
     Object.values(level.stages).forEach((stage) => {
-      total += stage.xpEarned;
+      total += sumStageXp(stage);
     });
   });
   return total;
 }
 
+// How much XP a specific stage has earned so far - used for the live XP
+// progress display while playing through a stage's activities.
+export function getStageEarnedXp(levelProgress, stageName) {
+  const stageProgress = levelProgress.stages[stageName];
+  if (!stageProgress) return 0;
+  return sumStageXp(stageProgress);
+}
+
+// The maximum XP a stage could possibly earn - the sum of every one of
+// its activities' full xpReward, regardless of what's actually been
+// earned so far. Used alongside getStageEarnedXp to show "X / Y XP".
+export function getStagePossibleXp(stageContent) {
+  return stageContent.activities.reduce((sum, activityItem) => sum + activityItem.xpReward, 0);
+}
+
+// Total XP earned across every stage of one level.
+export function getLevelEarnedXp(levelProgress) {
+  return STAGE_ORDER.reduce((sum, stageName) => {
+    const stageProgress = levelProgress.stages[stageName];
+    return sum + (stageProgress ? sumStageXp(stageProgress) : 0);
+  }, 0);
+}
+
+// Total possible XP across every stage of one level - a level's badge is
+// only awarded once getLevelEarnedXp equals this value (a perfect score),
+// per the "100% of the level's XP" requirement.
+export function getLevelPossibleXp(levelContent) {
+  return STAGE_ORDER.reduce((sum, stageName) => {
+    const stageContent = levelContent.stages[stageName];
+    return sum + (stageContent ? getStagePossibleXp(stageContent) : 0);
+  }, 0);
+}
+
 export function getEarnedBadgeIds(state) {
   return Object.values(state.missions).flatMap((mission) => mission.badgesEarned);
+}
+
+// Whether every activity in a stage has been ATTEMPTED at least once -
+// this is about attempt coverage (used to decide whether the next stage
+// unlocks), not correctness. A player can attempt every activity, get some
+// wrong, and still move on to the next stage; only the level's BADGE
+// requires a perfect score (see getLevelEarnedXp/getLevelPossibleXp).
+export function areAllStageActivitiesAttempted(stageProgress, stageContent) {
+  if (!stageContent || stageContent.activities.length === 0) return false;
+  return stageContent.activities.every((activityItem) =>
+    Object.prototype.hasOwnProperty.call(stageProgress.activityXp, activityItem.id)
+  );
 }
 
 // A mission counts as fully complete once every level defined in its
@@ -303,15 +389,12 @@ export function getPlayerLevel(state) {
 }
 
 // --- Readiness Score ---
-// This is deliberately a SEPARATE metric from XP (see getTotalXp above).
-// XP measures game engagement - how much a player has done. Readiness
-// Score measures actual disaster preparedness - which is the thing
-// CaribbeanShield's research question is actually about. A player could
-// rack up plenty of XP from easy Learn/Plan activities while still having
-// a low Readiness Score if they've skipped the harder, higher-weighted
-// Prepare/Respond work. Keeping these separate is what lets the eventual
-// analysis distinguish "did they engage with the app" from "did their
-// preparedness actually improve."
+// This is deliberately a SEPARATE metric from XP (see getTotalXp above),
+// though now that XP itself reflects correctness (not just completion),
+// the two are more closely related than before - which is a good thing:
+// a player who clicks through everything but gets it all wrong now earns
+// close to 0 XP AND a low Readiness Score, rather than looking "done" on
+// paper while having learned nothing.
 
 // Stage weights within a single level. Learn counts least since reading a
 // lesson is the lowest bar to clear; Plan/Prepare/Prove count more since
@@ -346,9 +429,13 @@ const LEVEL_WEIGHTS = {
   6: 0.15,
 };
 
-function getStageCompletionFraction(stageProgress, stageContent) {
-  if (!stageContent || stageContent.activities.length === 0) return 0;
-  return stageProgress.completedActivityIds.length / stageContent.activities.length;
+// Fraction of a stage's possible XP that's actually been earned - this now
+// captures correctness, not just attempt coverage, since XP itself is
+// correctness-weighted (see components/activities/).
+function getStageXpFraction(stageProgress, stageContent) {
+  const possibleXp = getStagePossibleXp(stageContent);
+  if (!stageContent || possibleXp === 0) return 0;
+  return sumStageXp(stageProgress) / possibleXp;
 }
 
 function getLevelReadinessFraction(levelProgress, levelContent) {
@@ -356,7 +443,7 @@ function getLevelReadinessFraction(levelProgress, levelContent) {
   STAGE_ORDER.forEach((stageName) => {
     const stageProgress = levelProgress.stages[stageName];
     const stageContent = levelContent.stages[stageName];
-    const stageFraction = getStageCompletionFraction(stageProgress, stageContent);
+    const stageFraction = getStageXpFraction(stageProgress, stageContent);
     weightedSum += stageFraction * STAGE_WEIGHTS[stageName];
   });
   return weightedSum;
@@ -364,7 +451,8 @@ function getLevelReadinessFraction(levelProgress, levelContent) {
 
 // The player's Readiness Score for one mission, as a percentage (0-100).
 // Needs the mission's content (not just its id) since the calculation
-// needs to know how many activities each stage has.
+// needs to know how many activities each stage has and how much XP each
+// is worth.
 export function getMissionReadinessScore(state, missionContent) {
   const missionProgress = state.missions[missionContent.missionId];
   if (!missionProgress) return 0;

@@ -2,7 +2,15 @@
 
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useGameContext, STAGE_ORDER } from '../../context/GameContext';
+import {
+  useGameContext,
+  STAGE_ORDER,
+  areAllStageActivitiesAttempted,
+  getStageEarnedXp,
+  getStagePossibleXp,
+  getLevelEarnedXp,
+  getLevelPossibleXp,
+} from '../../context/GameContext';
 import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
 import { COLORS } from '../../theme/colors';
 
@@ -23,14 +31,10 @@ const STAGE_DISPLAY = {
 };
 
 // A stage is only worth entering once every one of its activities has
-// real content - the remaining five stages of Level 1 are stubbed with
-// content: null for now (see missionContent/hurricane/level1.js).
+// real content - the remaining stages of Level 1 without content yet are
+// stubbed with content: null (see missionContent/hurricane/level1.js).
 function stageHasRealContent(stageContent) {
   return stageContent.activities.every((activity) => activity.content !== null);
-}
-
-function isStageComplete(stageProgress, stageContent) {
-  return stageProgress.completedActivityIds.length === stageContent.activities.length;
 }
 
 export default function MissionDetailScreen() {
@@ -86,6 +90,9 @@ export default function MissionDetailScreen() {
           levelNumber === levelNumbers[0] ||
           missionProgress.badgesEarned.includes(previousLevelBadgeId);
 
+        const levelEarnedXp = getLevelEarnedXp(levelProgress);
+        const levelPossibleXp = getLevelPossibleXp(levelContent);
+
         return (
           <View
             key={levelNumber}
@@ -96,6 +103,15 @@ export default function MissionDetailScreen() {
               {levelProgress.completed ? ' ✓' : ''}
             </Text>
 
+            {isLevelUnlocked && (
+              <Text style={styles.levelXpText}>
+                {levelEarnedXp}/{levelPossibleXp} XP
+                {!levelProgress.completed && levelEarnedXp > 0
+                  ? ' - perfect score across every stage earns the badge'
+                  : ''}
+              </Text>
+            )}
+
             {!isLevelUnlocked && (
               <Text style={styles.lockedLabel}>
                 🔒 Complete Level {previousLevelNumber} first
@@ -105,29 +121,34 @@ export default function MissionDetailScreen() {
             {isLevelUnlocked &&
               STAGE_ORDER.map((stageName, stageIndex) => {
                 const stageContent = levelContent.stages[stageName];
-                const stageProgress = levelProgress.stages[stageName] || {
-                  completedActivityIds: [],
-                  xpEarned: 0,
-                };
+                const stageProgress = levelProgress.stages[stageName] || { activityXp: {} };
                 const hasRealContent = stageHasRealContent(stageContent);
-                const stageComplete = isStageComplete(stageProgress, stageContent);
 
-                // A stage unlocks once the previous stage in the sequence
-                // is fully complete - Learn is always unlocked first.
+                const stageEarnedXp = getStageEarnedXp(levelProgress, stageName);
+                const stagePossibleXp = getStagePossibleXp(stageContent);
+                const isStagePerfect =
+                  stagePossibleXp > 0 && stageEarnedXp === stagePossibleXp;
+
+                // A stage unlocks for the first time once the previous
+                // stage has been ATTEMPTED in full - this is about attempt
+                // coverage, not correctness. A player can move on having
+                // gotten some answers wrong; only the level's BADGE
+                // requires a perfect score (see the XP line above), and
+                // any stage can always be re-entered to retry and improve.
                 const previousStageName = STAGE_ORDER[stageIndex - 1];
-                const previousStageComplete =
+                const previousStageAttempted =
                   stageIndex === 0 ||
-                  isStageComplete(
-                    levelProgress.stages[previousStageName] || { completedActivityIds: [] },
+                  areAllStageActivitiesAttempted(
+                    levelProgress.stages[previousStageName] || { activityXp: {} },
                     levelContent.stages[previousStageName]
                   );
 
-                const isEnterable = hasRealContent && previousStageComplete;
+                const isEnterable = hasRealContent && previousStageAttempted;
 
                 return (
                   <TouchableOpacity
                     key={stageName}
-                    style={[styles.stageRow, stageComplete && styles.stageRowComplete]}
+                    style={[styles.stageRow, isStagePerfect && styles.stageRowComplete]}
                     disabled={!isEnterable}
                     onPress={() =>
                       navigation.navigate('ActivityPlayer', {
@@ -141,12 +162,10 @@ export default function MissionDetailScreen() {
                     <View style={styles.stageInfo}>
                       <Text style={styles.stageLabel}>
                         {STAGE_DISPLAY[stageName].label}
-                        {stageComplete ? ' ✓' : ''}
+                        {isStagePerfect ? ' ✓' : ''}
                       </Text>
                       <Text style={styles.stageProgressText}>
-                        {hasRealContent
-                          ? `${stageProgress.completedActivityIds.length}/${stageContent.activities.length} activities`
-                          : 'Coming soon'}
+                        {hasRealContent ? `${stageEarnedXp}/${stagePossibleXp} XP` : 'Coming soon'}
                       </Text>
                     </View>
                     {!isEnterable && hasRealContent && (
@@ -224,6 +243,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.textDark,
+    marginBottom: 4,
+  },
+  levelXpText: {
+    fontSize: 12,
+    color: COLORS.textOrange,
     marginBottom: 10,
   },
   lockedLabel: {

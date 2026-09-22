@@ -24,6 +24,7 @@ export default function Quiz({ activity, onComplete }) {
   const [hasAnswered, setHasAnswered] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(timeLimitSeconds || null);
   const [ranOutOfTime, setRanOutOfTime] = useState(false);
+  const [correctAnswerCount, setCorrectAnswerCount] = useState(0);
 
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
@@ -64,11 +65,20 @@ export default function Quiz({ activity, onComplete }) {
     if (hasAnswered) return; // don't let the player change their answer after seeing feedback
     setSelectedOptionIndex(optionIndex);
     setHasAnswered(true);
+    if (optionIndex === currentQuestion.correctOptionIndex) {
+      setCorrectAnswerCount(correctAnswerCount + 1);
+    }
   }
 
   function handleNext() {
     if (isLastQuestion) {
-      onComplete();
+      // Award XP proportional to accuracy across the whole quiz, rounded
+      // to a whole number - a player who gets every question right earns
+      // the activity's full xpReward; getting half right earns half, and
+      // so on. This is what makes the level's badge genuinely require
+      // real accuracy rather than just clicking through every question.
+      const earnedXp = Math.round(activity.xpReward * (correctAnswerCount / questions.length));
+      onComplete(earnedXp);
       return;
     }
     setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -77,7 +87,7 @@ export default function Quiz({ activity, onComplete }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <View style={styles.headerRow}>
         <Text style={styles.progressLabel}>
           Question {currentQuestionIndex + 1} of {questions.length}
@@ -129,7 +139,9 @@ export default function Quiz({ activity, onComplete }) {
       {hasAnswered && (
         <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
           <Text style={styles.nextButtonText}>
-            {isLastQuestion ? `Finish (+${activity.xpReward} XP)` : 'Next Question'}
+            {isLastQuestion
+              ? `Finish (+${Math.round(activity.xpReward * (correctAnswerCount / questions.length))} XP)`
+              : 'Next Question'}
           </Text>
         </TouchableOpacity>
       )}

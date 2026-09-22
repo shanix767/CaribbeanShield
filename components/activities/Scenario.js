@@ -15,6 +15,7 @@ export default function Scenario({ activity, onComplete }) {
   const [selectedChoiceId, setSelectedChoiceId] = useState(null);
 
   const selectedChoice = choices.find((choice) => choice.id === selectedChoiceId);
+  const earnedXp = selectedChoice && selectedChoice.isBestChoice ? activity.xpReward : 0;
 
   function handleSelectChoice(choiceId) {
     if (selectedChoiceId) return; // already answered
@@ -22,7 +23,7 @@ export default function Scenario({ activity, onComplete }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <View style={styles.situationBox}>
         <Text style={styles.situationText}>{situationText}</Text>
       </View>
@@ -45,8 +46,8 @@ export default function Scenario({ activity, onComplete }) {
           </Text>
           <Text style={styles.feedbackText}>{selectedChoice.consequenceText}</Text>
 
-          <TouchableOpacity style={styles.continueButton} onPress={onComplete}>
-            <Text style={styles.continueButtonText}>Continue (+{activity.xpReward} XP)</Text>
+          <TouchableOpacity style={styles.continueButton} onPress={() => onComplete(earnedXp)}>
+            <Text style={styles.continueButtonText}>Continue (+{earnedXp} XP)</Text>
           </TouchableOpacity>
         </View>
       )}

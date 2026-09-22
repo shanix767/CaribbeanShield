@@ -66,7 +66,7 @@ export default function Matching({ activity, onComplete }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.prompt}>{prompt}</Text>
 
       <View style={styles.columnsRow}>
@@ -116,7 +116,7 @@ export default function Matching({ activity, onComplete }) {
       </View>
 
       {allPairsMatched && (
-        <TouchableOpacity style={styles.continueButton} onPress={onComplete}>
+        <TouchableOpacity style={styles.continueButton} onPress={() => onComplete(activity.xpReward)}>
           <Text style={styles.continueButtonText}>Continue (+{activity.xpReward} XP)</Text>
         </TouchableOpacity>
       )}

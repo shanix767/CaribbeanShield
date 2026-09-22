@@ -29,14 +29,24 @@ export default function ChecklistActivity({ activity, onComplete }) {
   }
 
   // How many items the player got right - selected the correct ones AND
-  // did not select the incorrect ones. Shown as encouragement, not used
-  // to gate progress (this is a Learn-stage activity, not a Prove test).
+  // did not select the incorrect ones.
   const correctItemIds = items.filter((item) => item.isCorrect).map((item) => item.id);
   const numberCorrectlySelected = selectedItemIds.filter((id) => correctItemIds.includes(id)).length;
   const numberIncorrectlySelected = selectedItemIds.filter((id) => !correctItemIds.includes(id)).length;
 
+  // Full accuracy across every item - both correctly selecting a hazard
+  // AND correctly leaving a non-hazard unselected both count as "right."
+  // This is what the activity's earned XP is based on: getting some items
+  // wrong (missed hazards or false alarms) earns proportionally less than
+  // the activity's full xpReward, not the full amount just for finishing.
+  const numberOfItemsJudgedCorrectly = items.filter((item) => {
+    const isSelected = selectedItemIds.includes(item.id);
+    return isSelected === item.isCorrect;
+  }).length;
+  const earnedXp = Math.round(activity.xpReward * (numberOfItemsJudgedCorrectly / items.length));
+
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.prompt}>{prompt}</Text>
 
@@ -76,16 +86,17 @@ export default function ChecklistActivity({ activity, onComplete }) {
                 ? `, and selected ${numberIncorrectlySelected} item(s) that weren't hazards.`
                 : '.'}
             </Text>
+            <Text style={styles.xpEarnedText}>+{earnedXp} XP</Text>
           </View>
         )}
       </ScrollView>
 
       <TouchableOpacity
         style={styles.actionButton}
-        onPress={hasSubmitted ? onComplete : handleSubmit}
+        onPress={hasSubmitted ? () => onComplete(earnedXp) : handleSubmit}
       >
         <Text style={styles.actionButtonText}>
-          {hasSubmitted ? `Continue (+${activity.xpReward} XP)` : 'Submit'}
+          {hasSubmitted ? `Continue (+${earnedXp} XP)` : 'Submit'}
         </Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -165,6 +176,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: COLORS.textDark,
+  },
+  xpEarnedText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.textOrange,
+    marginTop: 6,
   },
   actionButton: {
     backgroundColor: COLORS.backgroundGreenD,

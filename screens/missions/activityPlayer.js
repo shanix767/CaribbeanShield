@@ -4,13 +4,26 @@
 // renders each activity is decided purely by its `type` field - this
 // screen doesn't know or care whether an activity is a lesson, a quiz, or
 // a checklist, it just hands off to the matching component from
-// components/activities/. Adding a new activity type later means adding
-// one more case below, not touching this screen's structure.
+// components/activities/. Each activity component computes its own earned
+// XP based on correctness and passes it back via onComplete(earnedXp) -
+// this screen just records whatever value it's given.
+//
+// The level's badge is only awarded when the player's total earned XP for
+// the ENTIRE level equals the level's full possible XP - a perfect score,
+// not just having attempted everything. See handleActivityComplete below.
 
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useGameContext, STAGE_ORDER } from '../../context/GameContext';
+import {
+  useGameContext,
+  STAGE_ORDER,
+  getStageEarnedXp,
+  getStagePossibleXp,
+  getLevelEarnedXp,
+  getLevelPossibleXp,
+} from '../../context/GameContext';
 import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
 import Lesson from '../../components/activities/Lesson';
 import Quiz from '../../components/activities/Quiz';
@@ -23,11 +36,20 @@ const MISSION_CONTENT_BY_ID = {
   hurricaneReady: HURRICANE_MISSION_CONTENT,
 };
 
+const STAGE_DISPLAY_LABELS = {
+  learn: 'Learn',
+  plan: 'Plan',
+  prepare: 'Prepare',
+  prove: 'Prove Readiness',
+  respond: 'Respond',
+  recover: 'Recover',
+};
+
 export default function ActivityPlayerScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { missionId, level, stage } = route.params;
-  const { dispatch } = useGameContext();
+  const { state, dispatch } = useGameContext();
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
 
   const mission = MISSION_CONTENT_BY_ID[missionId];
@@ -39,14 +61,24 @@ export default function ActivityPlayerScreen() {
   const isLastStage = stage === STAGE_ORDER[STAGE_ORDER.length - 1];
   const isLastActivityInStage = currentActivityIndex === activities.length - 1;
 
-  function handleActivityComplete() {
+  // Live XP progress for this stage - reads straight from state, so it
+  // updates automatically on every re-render after an activity completes
+  // (including retries, since COMPLETE_ACTIVITY overwrites rather than
+  // blocks). Falls back to 0 gracefully if this level hasn't been touched
+  // in state yet (e.g. the very first activity the player ever opens).
+  const missionProgress = state.missions[missionId];
+  const levelProgress = missionProgress ? missionProgress.levels[level] : undefined;
+  const stageEarnedXpSoFar = levelProgress ? getStageEarnedXp(levelProgress, stage) : 0;
+  const stagePossibleXp = getStagePossibleXp(stageContent);
+
+  function handleActivityComplete(earnedXp) {
     dispatch({
       type: 'COMPLETE_ACTIVITY',
       missionId,
       level,
       stage,
       activityId: currentActivity.id,
-      xpReward: currentActivity.xpReward,
+      xpReward: earnedXp,
     });
 
     if (!isLastActivityInStage) {
@@ -55,69 +87,115 @@ export default function ActivityPlayerScreen() {
     }
 
     // Finished the last activity in this stage. Only the very last stage
-    // (Recover) in the sequence actually awards the level's badge - every
-    // other stage just returns to the level overview so the player can
-    // see the next stage unlock.
+    // (Recover) in the sequence can award the level's badge, and only if
+    // this attempt brought the level's total XP to its full possible
+    // amount - a perfect score, not just full attempt coverage.
+    //
+    // levelProgress (read above, before this dispatch) already reflects
+    // every stage and every earlier activity in THIS stage, since those
+    // were dispatched on previous calls to this function. The only thing
+    // it doesn't yet include is earnedXp from THIS activity, since that
+    // dispatch hasn't landed in state yet - so it's added in directly
+    // here rather than re-reading state after the dispatch above.
     if (isLastStage) {
-      dispatch({
-        type: 'COMPLETE_LEVEL',
-        missionId,
-        level,
-        badgeId: levelContent.badgeId,
-      });
+      const alreadyEarnedAcrossLevel = levelProgress ? getLevelEarnedXp(levelProgress) : 0;
+      const totalEarnedIncludingThisActivity = alreadyEarnedAcrossLevel + earnedXp;
+      const totalPossibleForLevel = getLevelPossibleXp(levelContent);
+      const isPerfectScore = totalEarnedIncludingThisActivity === totalPossibleForLevel;
+
+      if (isPerfectScore) {
+        dispatch({
+          type: 'COMPLETE_LEVEL',
+          missionId,
+          level,
+          badgeId: levelContent.badgeId,
+        });
+      }
+      // If it's not a perfect score, no badge is awarded - the player can
+      // re-enter this stage (or any earlier stage) to retry activities
+      // and try again. Nothing here blocks that; COMPLETE_ACTIVITY always
+      // accepts a fresh attempt.
     }
 
     navigation.goBack();
   }
 
-  if (!currentActivity.content) {
-    // Defensive fallback - MissionDetailScreen already disables entry into
-    // stages without real content, so this shouldn't normally be reached.
+  return (
+    <SafeAreaView style={styles.wrapper} edges={["top"]}>
+      <View style={styles.progressHeader}>
+        <Text style={styles.progressHeaderText}>
+          {STAGE_DISPLAY_LABELS[stage]} progress: {stageEarnedXpSoFar} / {stagePossibleXp} XP
+        </Text>
+      </View>
+
+      {renderActivity()}
+    </SafeAreaView>
+  );
+
+  function renderActivity() {
+    if (!currentActivity.content) {
+      // Defensive fallback - MissionDetailScreen already disables entry
+      // into stages without real content, so this shouldn't normally be
+      // reached.
+      return (
+        <View style={styles.centeredContainer}>
+          <Text style={styles.comingSoonText}>This activity isn't built yet.</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (currentActivity.type === 'lesson') {
+      return <Lesson activity={currentActivity} onComplete={handleActivityComplete} />;
+    }
+
+    if (currentActivity.type === 'quiz') {
+      return <Quiz activity={currentActivity} onComplete={handleActivityComplete} />;
+    }
+
+    if (currentActivity.type === 'checklist') {
+      return <Checklist activity={currentActivity} onComplete={handleActivityComplete} />;
+    }
+
+    if (currentActivity.type === 'matching') {
+      return <Matching activity={currentActivity} onComplete={handleActivityComplete} />;
+    }
+
+    if (currentActivity.type === 'scenario') {
+      return <Scenario activity={currentActivity} onComplete={handleActivityComplete} />;
+    }
+
+    // A type without a matching component yet.
     return (
       <View style={styles.centeredContainer}>
-        <Text style={styles.comingSoonText}>This activity isn't built yet.</Text>
+        <Text style={styles.comingSoonText}>
+          Activity type "{currentActivity.type}" isn't built yet.
+        </Text>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
-
-  if (currentActivity.type === 'lesson') {
-    return <Lesson activity={currentActivity} onComplete={handleActivityComplete} />;
-  }
-
-  if (currentActivity.type === 'quiz') {
-    return <Quiz activity={currentActivity} onComplete={handleActivityComplete} />;
-  }
-
-  if (currentActivity.type === 'checklist') {
-    return <Checklist activity={currentActivity} onComplete={handleActivityComplete} />;
-  }
-
-  if (currentActivity.type === 'matching') {
-    return <Matching activity={currentActivity} onComplete={handleActivityComplete} />;
-  }
-
-  if (currentActivity.type === 'scenario') {
-    return <Scenario activity={currentActivity} onComplete={handleActivityComplete} />;
-  }
-
-  // A type without a matching component yet (e.g. 'matching', 'scenario' -
-  // not built in this pass).
-  return (
-    <View style={styles.centeredContainer}>
-      <Text style={styles.comingSoonText}>
-        Activity type "{currentActivity.type}" isn't built yet.
-      </Text>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>Go Back</Text>
-      </TouchableOpacity>
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+  },
+  progressHeader: {
+    backgroundColor: COLORS.backgroundGreenD,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  progressHeaderText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
   centeredContainer: {
     flex: 1,
     justifyContent: 'center',
