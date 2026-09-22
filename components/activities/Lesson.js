@@ -1,17 +1,20 @@
-import { 
-    View, 
-    Text, 
-    ScrollView, 
-    StyleSheet, 
-    TouchableOpacity 
-} from 'react-native';
+// components/activities/Lesson.js
+//
+// Reusable across every "read this, then continue" activity in any
+// mission/level/stage — e.g. L1.1 "What Is a Hurricane?" and L1.3 "Watch
+// vs Warning". The content itself (body text, bullet points) always comes
+// from the activity's content object, never hardcoded here, so this one
+// component can render any lesson in any mission.
+
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../../theme/colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LessonActivity({ activity, onComplete }) {
   const { body, bullets } = activity.content;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>{activity.title}</Text>
         <Text style={styles.body}>{body}</Text>
@@ -27,7 +30,7 @@ export default function LessonActivity({ activity, onComplete }) {
       <TouchableOpacity style={styles.continueButton} onPress={onComplete}>
         <Text style={styles.continueButtonText}>Continue (+{activity.xpReward} XP)</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   continueButtonText: {
-    color: COLORS.textWhite,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },

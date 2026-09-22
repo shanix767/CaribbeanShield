@@ -1,11 +1,17 @@
+// components/activities/Quiz.js
+//
+// Reusable across every quiz-style activity, including true/false quizzes
+// (a true/false question is just a quiz question with two options, so
+// there's no need for a separate component). Walks the player through
+// each question one at a time, shows whether they were right with a short
+// explanation, then lets them continue. This is a Learn-stage quiz, not a
+// Prove-stage test, so there's no pass/fail gate — the point is exposure
+// and immediate feedback, not screening.
+
 import { useState } from 'react';
-import { 
-    View, 
-    Text, 
-    StyleSheet, 
-    TouchableOpacity 
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../../theme/colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function QuizActivity({ activity, onComplete }) {
   const { questions } = activity.content;
@@ -34,7 +40,7 @@ export default function QuizActivity({ activity, onComplete }) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <Text style={styles.progressLabel}>
         Question {currentQuestionIndex + 1} of {questions.length}
       </Text>
@@ -80,7 +86,7 @@ export default function QuizActivity({ activity, onComplete }) {
           </Text>
         </TouchableOpacity>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

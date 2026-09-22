@@ -1,12 +1,14 @@
+// components/activities/Checklist.js
+//
+// Reusable across every "select all that apply" activity — Hazard Hunt,
+// Mini Emergency Kit, Information Sources, After the Storm, etc. Each
+// item in the content just needs a label and an isCorrect flag; this
+// component doesn't know or care what the checklist is actually about.
+
 import { useState } from 'react';
-import { 
-    View, 
-    Text, 
-    StyleSheet, 
-    TouchableOpacity, 
-    ScrollView 
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS } from '../../theme/colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChecklistActivity({ activity, onComplete }) {
   const { prompt, items } = activity.content;
@@ -34,7 +36,7 @@ export default function ChecklistActivity({ activity, onComplete }) {
   const numberIncorrectlySelected = selectedItemIds.filter((id) => !correctItemIds.includes(id)).length;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.prompt}>{prompt}</Text>
 
@@ -86,7 +88,7 @@ export default function ChecklistActivity({ activity, onComplete }) {
           {hasSubmitted ? `Continue (+${activity.xpReward} XP)` : 'Submit'}
         </Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -172,7 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionButtonText: {
-    color: COLORS.textWhite,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },

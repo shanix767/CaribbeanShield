@@ -166,33 +166,279 @@ export const HURRICANE_LEVEL_1 = {
     // will just show a "coming soon" note for now.
     plan: {
       activities: [
-        { id: 'L1.6', type: 'checklist', title: 'Identify Your Household Hazards', xpReward: 15, content: null },
-        { id: 'L1.7', type: 'checklist', title: 'Find Your Safe Location', xpReward: 15, content: null },
-        { id: 'L1.8', type: 'lesson', title: 'Emergency Contact List', xpReward: 10, content: null },
+        {
+          id: 'L1.6',
+          type: 'checklist',
+          title: 'Identify Your Household Hazards',
+          xpReward: 15,
+          content: {
+            prompt: 'Which of these hazard types should a household in Dominica actually plan for during hurricane season?',
+            items: [
+              { id: 'i1', label: 'Flooding', isCorrect: true },
+              { id: 'i2', label: 'Landslides', isCorrect: true },
+              { id: 'i3', label: 'Strong winds', isCorrect: true },
+              { id: 'i4', label: 'Coastal flooding / storm surge', isCorrect: true },
+              { id: 'i5', label: 'Blizzards', isCorrect: false },
+              { id: 'i6', label: 'Wildfire', isCorrect: false },
+            ],
+          },
+        },
+        {
+          id: 'L1.7',
+          type: 'checklist',
+          title: 'Find Your Safe Location',
+          xpReward: 15,
+          content: {
+            prompt: 'Which of these describe a good safe room to shelter in during a hurricane?',
+            items: [
+              { id: 'i1', label: 'Interior room with no windows', isCorrect: true },
+              { id: 'i2', label: 'Small room under the stairs', isCorrect: true },
+              { id: 'i3', label: 'Ground-floor room, away from flood-prone areas', isCorrect: true },
+              { id: 'i4', label: 'Top-floor room with a balcony', isCorrect: false },
+              { id: 'i5', label: 'Room with large glass doors', isCorrect: false },
+              { id: 'i6', label: 'Basement known to flood', isCorrect: false },
+            ],
+          },
+        },
+        {
+          id: 'L1.8',
+          type: 'lesson',
+          title: 'Emergency Contact List',
+          xpReward: 10,
+          content: {
+            body:
+              'A written or saved emergency contact list matters most when phone networks are down and you ' +
+              'can\u2019t simply look a number up. Keep a copy on paper as well as on your phone.',
+            bullets: [
+              'Police, Fire, and Ambulance (Dominica): 911',
+              'Office of Disaster Management (ODM): (767) 266-4411 / (767) 266-4412',
+              'Dominica Red Cross Society: (767) 448-8280',
+              'DOWASCO (water faults): (767) 448-4811 — DOMLEC (electricity faults): 811',
+              'An out-of-area contact who can relay messages if local lines are jammed',
+            ],
+          },
+        },
       ],
     },
     prepare: {
       activities: [
-        { id: 'L1.9', type: 'checklist', title: 'Build a Mini Emergency Kit', xpReward: 20, content: null },
-        { id: 'L1.10', type: 'matching', title: 'Emergency Equipment Match', xpReward: 10, content: null },
-        { id: 'L1.11', type: 'checklist', title: 'Emergency Information Sources', xpReward: 10, content: null },
+        {
+          id: 'L1.9',
+          type: 'checklist',
+          title: 'Build a Mini Emergency Kit',
+          xpReward: 20,
+          content: {
+            prompt: 'Select the items that belong in a basic emergency kit.',
+            items: [
+              { id: 'i1', label: 'Flashlight with spare batteries', isCorrect: true },
+              { id: 'i2', label: 'Battery-powered or hand-crank radio', isCorrect: true },
+              { id: 'i3', label: 'Bottled water (enough for several days)', isCorrect: true },
+              { id: 'i4', label: 'Non-perishable food', isCorrect: true },
+              { id: 'i5', label: 'Basic first aid supplies', isCorrect: true },
+              { id: 'i6', label: 'Scented candles for lighting', isCorrect: false },
+              { id: 'i7', label: 'Fireworks', isCorrect: false },
+            ],
+          },
+        },
+        {
+          id: 'L1.10',
+          type: 'matching',
+          title: 'Emergency Equipment Match',
+          xpReward: 10,
+          content: {
+            prompt: 'Match each item to what it\u2019s used for.',
+            pairs: [
+              { id: 'p1', left: '🔦 Flashlight', right: 'Provides light during a power outage' },
+              { id: 'p2', left: '📻 Radio', right: 'Receives official emergency broadcasts' },
+              { id: 'p3', left: '💧 Water', right: 'Keeps you hydrated for several days' },
+              { id: 'p4', left: '🩹 First Aid Kit', right: 'Treats minor cuts and injuries' },
+            ],
+          },
+        },
+        {
+          id: 'L1.11',
+          type: 'checklist',
+          title: 'Emergency Information Sources',
+          xpReward: 10,
+          content: {
+            prompt: 'Which of these are reliable, official sources of hurricane information?',
+            items: [
+              { id: 'i1', label: 'Office of Disaster Management (ODM) alerts', isCorrect: true },
+              { id: 'i2', label: 'National Hurricane Center bulletins', isCorrect: true },
+              { id: 'i3', label: 'Government Information Service broadcasts', isCorrect: true },
+              { id: 'i4', label: 'A forwarded WhatsApp voice note from a friend', isCorrect: false },
+              { id: 'i5', label: 'An unverified social media post', isCorrect: false },
+            ],
+          },
+        },
       ],
     },
     prove: {
       activities: [
-        { id: 'L1.12', type: 'quiz', title: '10-Question Hurricane Quiz', xpReward: 25, content: null },
-        { id: 'L1.13', type: 'checklist', title: 'Hazard Identification Test', xpReward: 20, content: null },
-        { id: 'L1.14', type: 'scenario', title: '60-Second Decision Challenge', xpReward: 15, content: null },
+        {
+          id: 'L1.12',
+          type: 'quiz',
+          title: '10-Question Hurricane Quiz',
+          xpReward: 25,
+          content: {
+            questions: [
+              {
+                id: 'q1',
+                prompt: 'What wind speed makes a storm officially a hurricane?',
+                options: ['30 mph', '50 mph', '74 mph', '100 mph'],
+                correctOptionIndex: 2,
+                explanation: 'A tropical storm becomes a hurricane once sustained winds reach 74 mph (119 km/h).',
+              },
+              {
+                id: 'q2',
+                prompt: 'Which alert level means hurricane conditions are EXPECTED within 36 hours?',
+                options: ['Hurricane Watch', 'Hurricane Warning', 'Tropical Advisory', 'All Clear'],
+                correctOptionIndex: 1,
+                explanation: 'A Warning is the more urgent of the two — conditions are expected, not just possible.',
+              },
+              {
+                id: 'q3',
+                prompt: 'What should you do if a hurricane\u2019s calm "eye" passes over you?',
+                options: [
+                  'Go outside, the storm has passed',
+                  'Stay sheltered — winds return suddenly',
+                  'Start cleaning up debris',
+                  'Call your emergency contacts to say it\u2019s over',
+                ],
+                correctOptionIndex: 1,
+                explanation: 'The eye is temporary. Strong winds return once it passes, often from a different direction.',
+              },
+              {
+                id: 'q4',
+                prompt: 'Which of these is a good safe-room choice?',
+                options: [
+                  'Top floor near a balcony',
+                  'Room with large glass doors',
+                  'Interior room with no windows',
+                  'Basement known to flood',
+                ],
+                correctOptionIndex: 2,
+                explanation: 'An interior room with no windows minimises exposure to wind and flying debris.',
+              },
+            ],
+          },
+        },
+        {
+          id: 'L1.13',
+          type: 'checklist',
+          title: 'Hazard Identification Test',
+          xpReward: 20,
+          content: {
+            prompt: 'Select every hurricane hazard from this list.',
+            items: [
+              { id: 'i1', label: 'Storm surge', isCorrect: true },
+              { id: 'i2', label: 'Flying debris', isCorrect: true },
+              { id: 'i3', label: 'Landslides', isCorrect: true },
+              { id: 'i4', label: 'Downed power lines', isCorrect: true },
+              { id: 'i5', label: 'Drought', isCorrect: false },
+              { id: 'i6', label: 'Wildfire', isCorrect: false },
+            ],
+          },
+        },
+        {
+          id: 'L1.14',
+          type: 'scenario',
+          title: '60-Second Decision Challenge',
+          xpReward: 15,
+          content: {
+            situationText:
+              'ODM has just issued a Hurricane Warning for Dominica. You\u2019re at home. What\u2019s your ' +
+              'immediate next step?',
+            choices: [
+              {
+                id: 'c1',
+                text: 'Finish securing loose outdoor items and check your emergency kit',
+                isBestChoice: true,
+                consequenceText:
+                  'Right instinct — a Warning means the storm is close. Finishing preparation immediately, ' +
+                  'not waiting, is exactly what\u2019s needed.',
+              },
+              {
+                id: 'c2',
+                text: 'Wait and see how the weather looks in a few hours',
+                isBestChoice: false,
+                consequenceText:
+                  'A Warning means conditions are expected within 36 hours — waiting narrows your ' +
+                  'preparation time right when you need it most.',
+              },
+              {
+                id: 'c3',
+                text: 'Go out to buy supplies you haven\u2019t gotten yet',
+                isBestChoice: false,
+                consequenceText:
+                  'By Warning stage, roads and stores get busy and conditions can deteriorate fast — ' +
+                  'supply runs should happen at Watch stage, not Warning stage.',
+              },
+            ],
+          },
+        },
       ],
     },
     respond: {
       activities: [
-        { id: 'L1.15', type: 'scenario', title: 'Hurricane Warning Scenario', xpReward: 60, content: null },
+        {
+          id: 'L1.15',
+          type: 'scenario',
+          title: 'Hurricane Warning Scenario',
+          xpReward: 60,
+          content: {
+            situationText:
+              'The hurricane has intensified overnight and ODM has now ordered evacuation for your ' +
+              'coastal community. You have about 30 minutes before roads become unsafe. What do you do?',
+            choices: [
+              {
+                id: 'c1',
+                text: 'Grab your emergency kit and evacuate to the designated shelter immediately',
+                isBestChoice: true,
+                consequenceText:
+                  'Correct — once an evacuation order is given, moving immediately with your prepared kit ' +
+                  'is the safest response. Delaying risks being caught on unsafe roads.',
+              },
+              {
+                id: 'c2',
+                text: 'Stay to protect your property',
+                isBestChoice: false,
+                consequenceText:
+                  'Property can be repaired or replaced — an evacuation order means your location is no ' +
+                  'longer considered safe. Staying behind puts your life at risk.',
+              },
+              {
+                id: 'c3',
+                text: 'Wait for a family member to arrive before leaving',
+                isBestChoice: false,
+                consequenceText:
+                  'This is exactly why a family communication and meeting-point plan matters (a later ' +
+                  'mission covers this) — waiting past the safe window can trap everyone.',
+              },
+            ],
+          },
+        },
       ],
     },
     recover: {
       activities: [
-        { id: 'L1.16', type: 'checklist', title: 'After the Storm', xpReward: 40, content: null },
+        {
+          id: 'L1.16',
+          type: 'checklist',
+          title: 'After the Storm',
+          xpReward: 40,
+          content: {
+            prompt: 'After the storm passes, which of these should you watch out for before going outside?',
+            items: [
+              { id: 'i1', label: 'Downed power lines', isCorrect: true },
+              { id: 'i2', label: 'Floodwater on roads', isCorrect: true },
+              { id: 'i3', label: 'Damaged or unstable buildings', isCorrect: true },
+              { id: 'i4', label: 'Fallen trees blocking roads', isCorrect: true },
+              { id: 'i5', label: 'Freshly cut grass', isCorrect: false },
+              { id: 'i6', label: 'Parked cars with no visible damage', isCorrect: false },
+            ],
+          },
+        },
       ],
     },
   },

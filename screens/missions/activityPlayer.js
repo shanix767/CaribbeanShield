@@ -15,6 +15,8 @@ import { HURRICANE_MISSION_CONTENT } from '../../missionContent/hurricane';
 import Lesson from '../../components/activities/Lesson';
 import Quiz from '../../components/activities/Quiz';
 import Checklist from '../../components/activities/Checklist';
+import Matching from '../../components/activities/Matching';
+import Scenario from '../../components/activities/Scenario';
 import { COLORS } from '../../theme/colors';
 
 const MISSION_CONTENT_BY_ID = {
@@ -91,6 +93,14 @@ export default function ActivityPlayerScreen() {
 
   if (currentActivity.type === 'checklist') {
     return <Checklist activity={currentActivity} onComplete={handleActivityComplete} />;
+  }
+
+  if (currentActivity.type === 'matching') {
+    return <Matching activity={currentActivity} onComplete={handleActivityComplete} />;
+  }
+
+  if (currentActivity.type === 'scenario') {
+    return <Scenario activity={currentActivity} onComplete={handleActivityComplete} />;
   }
 
   // A type without a matching component yet (e.g. 'matching', 'scenario' —
