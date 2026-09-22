@@ -1,7 +1,7 @@
 // components/activities/Lesson.js
 //
 // Reusable across every "read this, then continue" activity in any
-// mission/level/stage — e.g. L1.1 "What Is a Hurricane?" and L1.3 "Watch
+// mission/level/stage - e.g. L1.1 "What Is a Hurricane?" and L1.3 "Watch
 // vs Warning". The content itself (body text, bullet points) always comes
 // from the activity's content object, never hardcoded here, so this one
 // component can render any lesson in any mission.

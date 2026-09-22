@@ -1,6 +1,6 @@
 // components/activities/Checklist.js
 //
-// Reusable across every "select all that apply" activity — Hazard Hunt,
+// Reusable across every "select all that apply" activity - Hazard Hunt,
 // Mini Emergency Kit, Information Sources, After the Storm, etc. Each
 // item in the content just needs a label and an isCorrect flag; this
 // component doesn't know or care what the checklist is actually about.
@@ -28,7 +28,7 @@ export default function ChecklistActivity({ activity, onComplete }) {
     setHasSubmitted(true);
   }
 
-  // How many items the player got right — selected the correct ones AND
+  // How many items the player got right - selected the correct ones AND
   // did not select the incorrect ones. Shown as encouragement, not used
   // to gate progress (this is a Learn-stage activity, not a Prove test).
   const correctItemIds = items.filter((item) => item.isCorrect).map((item) => item.id);

@@ -27,7 +27,7 @@ export default function MissionsListScreen() {
 
       <View style={styles.statusCard}>
         <Text style={styles.playerLevelText}>
-          Level {playerLevel.level} — {playerLevel.name}
+          Level {playerLevel.level} - {playerLevel.name}
         </Text>
         <View style={styles.readinessRow}>
           <View style={styles.readinessBarTrack}>

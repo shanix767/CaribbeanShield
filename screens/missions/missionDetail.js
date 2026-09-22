@@ -11,7 +11,7 @@ const MISSION_CONTENT_BY_ID = {
   hurricaneReady: HURRICANE_MISSION_CONTENT,
 };
 
-// Display labels and icons for each stage — purely cosmetic, kept out of
+// Display labels and icons for each stage - purely cosmetic, kept out of
 // the content files since every mission's stages are named the same way.
 const STAGE_DISPLAY = {
   learn: { icon: '🧠', label: 'Learn' },
@@ -23,7 +23,7 @@ const STAGE_DISPLAY = {
 };
 
 // A stage is only worth entering once every one of its activities has
-// real content — the remaining five stages of Level 1 are stubbed with
+// real content - the remaining five stages of Level 1 are stubbed with
 // content: null for now (see missionContent/hurricane/level1.js).
 function stageHasRealContent(stageContent) {
   return stageContent.activities.every((activity) => activity.content !== null);
@@ -78,7 +78,7 @@ export default function MissionDetailScreen() {
         };
 
         // Level 1 is always unlocked. Level N unlocks once Level N-1's
-        // badge has been earned — not reachable yet since only Level 1
+        // badge has been earned - not reachable yet since only Level 1
         // exists, but this keeps the screen correct as levels get added.
         const previousLevelNumber = levelNumber - 1;
         const previousLevelBadgeId = mission.levels[previousLevelNumber]?.badgeId;
@@ -113,7 +113,7 @@ export default function MissionDetailScreen() {
                 const stageComplete = isStageComplete(stageProgress, stageContent);
 
                 // A stage unlocks once the previous stage in the sequence
-                // is fully complete — Learn is always unlocked first.
+                // is fully complete - Learn is always unlocked first.
                 const previousStageName = STAGE_ORDER[stageIndex - 1];
                 const previousStageComplete =
                   stageIndex === 0 ||

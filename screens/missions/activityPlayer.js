@@ -1,7 +1,7 @@
 // screens/missions/activityPlayer.js
 //
 // Renders one stage's activities one at a time, in order. Which component
-// renders each activity is decided purely by its `type` field — this
+// renders each activity is decided purely by its `type` field - this
 // screen doesn't know or care whether an activity is a lesson, a quiz, or
 // a checklist, it just hands off to the matching component from
 // components/activities/. Adding a new activity type later means adding
@@ -55,7 +55,7 @@ export default function ActivityPlayerScreen() {
     }
 
     // Finished the last activity in this stage. Only the very last stage
-    // (Recover) in the sequence actually awards the level's badge — every
+    // (Recover) in the sequence actually awards the level's badge - every
     // other stage just returns to the level overview so the player can
     // see the next stage unlock.
     if (isLastStage) {
@@ -71,7 +71,7 @@ export default function ActivityPlayerScreen() {
   }
 
   if (!currentActivity.content) {
-    // Defensive fallback — MissionDetailScreen already disables entry into
+    // Defensive fallback - MissionDetailScreen already disables entry into
     // stages without real content, so this shouldn't normally be reached.
     return (
       <View style={styles.centeredContainer}>
@@ -103,7 +103,7 @@ export default function ActivityPlayerScreen() {
     return <Scenario activity={currentActivity} onComplete={handleActivityComplete} />;
   }
 
-  // A type without a matching component yet (e.g. 'matching', 'scenario' —
+  // A type without a matching component yet (e.g. 'matching', 'scenario' -
   // not built in this pass).
   return (
     <View style={styles.centeredContainer}>

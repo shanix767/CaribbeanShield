@@ -1,8 +1,8 @@
 // GameContext.js
 //
 // One shared game state for ALL missions (Hurricane Ready, and whatever
-// gets added later — Volcanic Hazard Ready, Flash Flood Aware, etc.). The
-// reducer doesn't know anything about hurricanes specifically — it just
+// gets added later - Volcanic Hazard Ready, Flash Flood Aware, etc.). The
+// reducer doesn't know anything about hurricanes specifically - it just
 // tracks progress per missionId/level/stage/activity, so adding a new
 // mission or level later means adding content to missionContent/, not
 // writing new reducer code.
@@ -11,7 +11,7 @@
 // Learn -> Plan -> Prepare -> Prove -> Respond -> Recover. Each level
 // awards its own badge on completion (missions can therefore earn several
 // badges, not just one), and progress is tracked per individual activity
-// within each stage — not just "level done or not."
+// within each stage - not just "level done or not."
 //
 // Persists to AsyncStorage so progress survives closing the app, and loads
 // that saved progress back in on startup.
@@ -82,7 +82,7 @@ function gameReducer(state, action) {
 
     case 'COMPLETE_ACTIVITY': {
       // Dispatched every time the player finishes one activity inside one
-      // stage of one level — e.g. finishing the "Hurricane Hazards Quiz"
+      // stage of one level - e.g. finishing the "Hurricane Hazards Quiz"
       // inside Level 1's Learn stage. This is the fine-grained progress
       // unit everything else (XP, Readiness Score) is built from.
       const { missionId, level, stage, activityId, xpReward } = action;
@@ -128,7 +128,7 @@ function gameReducer(state, action) {
 
     case 'COMPLETE_LEVEL': {
       // Dispatched once, when the player finishes a level's final Recover
-      // activity — this is what actually awards the level's badge.
+      // activity - this is what actually awards the level's badge.
       // Finishing individual activities (above) does NOT award a badge by
       // itself; this action is the explicit "level complete" moment.
       const { missionId, level, badgeId } = action;
@@ -158,7 +158,7 @@ function gameReducer(state, action) {
     }
 
     case 'RESET_PROGRESS': {
-      // Used by the Profile screen's Reset Progress button — needed for
+      // Used by the Profile screen's Reset Progress button - needed for
       // running multiple evaluation sessions without old progress carrying
       // over between participants.
       return initialState;
@@ -184,7 +184,7 @@ export function GameProvider({ children }) {
           dispatch({ type: 'LOAD_STATE', savedState: JSON.parse(savedJson) });
         }
       } catch {
-        // Corrupted or missing save — just start fresh from initialState.
+        // Corrupted or missing save - just start fresh from initialState.
       }
       setHasLoadedSavedState(true);
     }
@@ -193,13 +193,13 @@ export function GameProvider({ children }) {
   }, []);
 
   // Save to AsyncStorage every time state changes, but only AFTER the
-  // initial load above has finished — otherwise this would immediately
+  // initial load above has finished - otherwise this would immediately
   // overwrite a real saved game with the blank initialState on every startup.
   useEffect(() => {
     if (!hasLoadedSavedState) return;
 
     AsyncStorage.setItem(GAME_STATE_STORAGE_KEY, JSON.stringify(state)).catch(() => {
-      // Saving failed — not much the player can do about this in the
+      // Saving failed - not much the player can do about this in the
       // moment, so just let it silently retry on the next state change.
     });
   }, [state, hasLoadedSavedState]);
@@ -222,7 +222,7 @@ export function useGameContext() {
 }
 
 // --- Derived helpers ---
-// These read from state but don't belong in the reducer itself — they're
+// These read from state but don't belong in the reducer itself - they're
 // just convenient calculations screens will want often (leaderboard,
 // badges screen, mission detail, tier display).
 
@@ -238,7 +238,7 @@ export function getTotalXp(state) {
   return total;
 }
 
-// Same idea as getTotalXp above, but scoped to one mission — used by the
+// Same idea as getTotalXp above, but scoped to one mission - used by the
 // Missions list screen to show each mission's own XP rather than the
 // player's grand total.
 export function getMissionXp(state, missionId) {
@@ -259,9 +259,9 @@ export function getEarnedBadgeIds(state) {
 }
 
 // A mission counts as fully complete once every level defined in its
-// content has had its badge earned — takes the mission's content (not just
+// content has had its badge earned - takes the mission's content (not just
 // its id) since GameContext itself doesn't know how many levels a mission
-// has (content and progress are deliberately kept separate — see
+// has (content and progress are deliberately kept separate - see
 // missionContent/ files).
 export function hasCompletedMission(state, missionContent) {
   const missionProgress = state.missions[missionContent.missionId];
@@ -279,7 +279,7 @@ export function hasCompletedAllMissions(state, allMissionContents) {
   return allMissionContents.every((missionContent) => hasCompletedMission(state, missionContent));
 }
 
-// Player level/title based on total XP across all missions — thresholds
+// Player level/title based on total XP across all missions - thresholds
 // carried over from the original GameContext design.
 const LEVEL_THRESHOLDS = [
   { minXp: 0, level: 1, name: 'Newcomer' },
@@ -291,7 +291,7 @@ const LEVEL_THRESHOLDS = [
 
 export function getPlayerLevel(state) {
   const totalXp = getTotalXp(state);
-  // Thresholds are ordered lowest to highest — find the last one the
+  // Thresholds are ordered lowest to highest - find the last one the
   // player's XP still qualifies for.
   let currentLevel = LEVEL_THRESHOLDS[0];
   for (const threshold of LEVEL_THRESHOLDS) {
@@ -304,8 +304,8 @@ export function getPlayerLevel(state) {
 
 // --- Readiness Score ---
 // This is deliberately a SEPARATE metric from XP (see getTotalXp above).
-// XP measures game engagement — how much a player has done. Readiness
-// Score measures actual disaster preparedness — which is the thing
+// XP measures game engagement - how much a player has done. Readiness
+// Score measures actual disaster preparedness - which is the thing
 // CaribbeanShield's research question is actually about. A player could
 // rack up plenty of XP from easy Learn/Plan activities while still having
 // a low Readiness Score if they've skipped the harder, higher-weighted
@@ -332,10 +332,10 @@ const STAGE_WEIGHTS = {
 // just personal knowledge. These stay fixed at these values even while
 // only Level 1 exists in content, so the Readiness Score honestly reflects
 // "how ready is this player for a REAL hurricane" rather than "how much of
-// what's been built so far has this player finished" — those are
+// what's been built so far has this player finished" - those are
 // different questions, and only the first one matters for the research
 // write-up. In practice this means the maximum possible Readiness Score
-// right now is 10% (Level 1's full weight) until Levels 2-6 are built —
+// right now is 10% (Level 1's full weight) until Levels 2-6 are built -
 // that's expected, not a bug.
 const LEVEL_WEIGHTS = {
   1: 0.1,
@@ -374,7 +374,7 @@ export function getMissionReadinessScore(state, missionContent) {
     const levelContent = missionContent.levels[levelNumberKey];
     const levelProgress = missionProgress.levels[levelNumberKey];
     // Levels with no content yet (not built) or no progress yet (not
-    // started) simply contribute 0 — see the comment on LEVEL_WEIGHTS
+    // started) simply contribute 0 - see the comment on LEVEL_WEIGHTS
     // above for why that's intentional.
     if (!levelContent || !levelProgress) return;
     const levelFraction = getLevelReadinessFraction(levelProgress, levelContent);
@@ -384,7 +384,7 @@ export function getMissionReadinessScore(state, missionContent) {
   return Math.round(weightedSum * 100);
 }
 
-// Overall readiness across every mission that's been built so far — the
+// Overall readiness across every mission that's been built so far - the
 // average of each mission's own Readiness Score above. Takes the full
 // mission content list (not just ids) since each mission's score
 // calculation needs its own content definition.
@@ -400,7 +400,7 @@ export function getReadinessPercentage(state, allMissionContents) {
 }
 
 // TODO: tier/unlock system across missions (e.g. "complete Hurricane Ready
-// before Volcanic Hazard Ready unlocks") — revisit once a second mission
+// before Volcanic Hazard Ready unlocks") - revisit once a second mission
 // actually exists (Phase 3) and it's clear what order they should unlock
-// in — no point guessing tier assignments for missions that aren't built
+// in - no point guessing tier assignments for missions that aren't built
 // yet.

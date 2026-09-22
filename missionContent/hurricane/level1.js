@@ -1,7 +1,7 @@
 // missionContent/hurricane/level1.js
 //
-// Content for Hurricane Ready — Level 1: "Know the Storm". This file is
-// pure data — no UI code — so the same activity can be rendered by
+// Content for Hurricane Ready - Level 1: "Know the Storm". This file is
+// pure data - no UI code - so the same activity can be rendered by
 // whichever reusable activity-type component matches its `type` (see
 // components/activities/). GameContext never imports this file directly;
 // screens pass it in wherever a readiness/XP calculation needs to know
@@ -11,7 +11,7 @@
 // Learn subtotal 60, Plan 40, Prepare 40, Prove 60, Respond 60, Recover 40
 // = 300 XP for the level, +25 completion bonus.
 //
-// Only the Learn stage has real content right now — Plan/Prepare/Prove/
+// Only the Learn stage has real content right now - Plan/Prepare/Prove/
 // Respond/Recover are stubbed with correct ids and xpReward values (so XP
 // totals are already right) but placeholder activity content, clearly
 // marked TODO. Fill these in once the Learn-stage vertical slice has been
@@ -34,13 +34,13 @@ export const HURRICANE_LEVEL_1 = {
           content: {
             body:
               'A hurricane is a powerful, rotating storm that forms over warm ocean water in the Atlantic. ' +
-              'Warm, moist air rises and cools, forming clouds and releasing heat that fuels the storm — the ' +
+              'Warm, moist air rises and cools, forming clouds and releasing heat that fuels the storm - the ' +
               'warmer the ocean, the stronger a hurricane can grow. Storms are classed Category 1 to 5 on the ' +
               'Saffir-Simpson scale, based on sustained wind speed.',
             bullets: [
               'Sustained winds of at least 74 mph (119 km/h) to be classed a hurricane',
               'The Atlantic hurricane season runs June 1 to November 30',
-              'Dominica sits in an active hurricane path — Hurricane Maria (2017) was a Category 5 storm',
+              'Dominica sits in an active hurricane path - Hurricane Maria (2017) was a Category 5 storm',
             ],
           },
         },
@@ -71,7 +71,7 @@ export const HURRICANE_LEVEL_1 = {
                 ],
                 correctOptionIndex: 0,
                 explanation:
-                  'Storm surge is seawater pushed onto land by a hurricane\u2019s winds — often the deadliest ' +
+                  'Storm surge is seawater pushed onto land by a hurricane\u2019s winds - often the deadliest ' +
                   'hazard in a hurricane, especially in low-lying coastal areas.',
               },
               {
@@ -96,9 +96,9 @@ export const HURRICANE_LEVEL_1 = {
               'The Office of Disaster Management (ODM) and NOAA\u2019s National Hurricane Center use two key ' +
               'alert levels. Knowing the difference determines how urgently you need to act.',
             bullets: [
-              'HURRICANE WATCH: hurricane conditions are POSSIBLE in your area, usually within 48 hours — start preparing now',
-              'HURRICANE WARNING: hurricane conditions are EXPECTED in your area, usually within 36 hours — finish preparations immediately',
-              'A Warning is more urgent than a Watch — it means the storm is close and preparation time is running out',
+              'HURRICANE WATCH: hurricane conditions are POSSIBLE in your area, usually within 48 hours - start preparing now',
+              'HURRICANE WARNING: hurricane conditions are EXPECTED in your area, usually within 36 hours - finish preparations immediately',
+              'A Warning is more urgent than a Watch - it means the storm is close and preparation time is running out',
             ],
           },
         },
@@ -132,7 +132,7 @@ export const HURRICANE_LEVEL_1 = {
                 options: ['True', 'False'],
                 correctOptionIndex: 1,
                 explanation:
-                  'False — tape does not add meaningful strength to glass and can create larger, more ' +
+                  'False - tape does not add meaningful strength to glass and can create larger, more ' +
                   'dangerous shards if the window breaks. Storm shutters or plywood are the real protection.',
               },
               {
@@ -141,7 +141,7 @@ export const HURRICANE_LEVEL_1 = {
                 options: ['True', 'False'],
                 correctOptionIndex: 1,
                 explanation:
-                  'False — the eye is a temporary calm at the storm\u2019s centre. Winds return suddenly, ' +
+                  'False - the eye is a temporary calm at the storm\u2019s centre. Winds return suddenly, ' +
                   'often from the opposite direction, once the eye passes.',
               },
               {
@@ -150,7 +150,7 @@ export const HURRICANE_LEVEL_1 = {
                 options: ['True', 'False'],
                 correctOptionIndex: 0,
                 explanation:
-                  'True — even the lowest category brings winds strong enough to damage roofs, snap tree ' +
+                  'True - even the lowest category brings winds strong enough to damage roofs, snap tree ' +
                   'branches, and cause power outages.',
               },
             ],
@@ -162,7 +162,7 @@ export const HURRICANE_LEVEL_1 = {
     // TODO: real content for the remaining five stages. ids and xpReward
     // values are already set to match the scoring design (Plan 40 total,
     // Prepare 40, Prove 60, Respond 60, Recover 40) so XP math is correct
-    // even before real activity content is written — placeholder screens
+    // even before real activity content is written - placeholder screens
     // will just show a "coming soon" note for now.
     plan: {
       activities: [
@@ -213,7 +213,7 @@ export const HURRICANE_LEVEL_1 = {
               'Police, Fire, and Ambulance (Dominica): 911',
               'Office of Disaster Management (ODM): (767) 266-4411 / (767) 266-4412',
               'Dominica Red Cross Society: (767) 448-8280',
-              'DOWASCO (water faults): (767) 448-4811 — DOMLEC (electricity faults): 811',
+              'DOWASCO (water faults): (767) 448-4811 - DOMLEC (electricity faults): 811',
               'An out-of-area contact who can relay messages if local lines are jammed',
             ],
           },
@@ -281,44 +281,110 @@ export const HURRICANE_LEVEL_1 = {
           title: '10-Question Hurricane Quiz',
           xpReward: 25,
           content: {
+            timeLimitSeconds: 20,
             questions: [
               {
                 id: 'q1',
-                prompt: 'What wind speed makes a storm officially a hurricane?',
-                options: ['30 mph', '50 mph', '74 mph', '100 mph'],
-                correctOptionIndex: 2,
-                explanation: 'A tropical storm becomes a hurricane once sustained winds reach 74 mph (119 km/h).',
+                prompt: 'A storm has sustained winds of 65 mph. What classification is it?',
+                options: ['Tropical Depression', 'Tropical Storm', 'Hurricane', 'Major Hurricane'],
+                correctOptionIndex: 1,
+                explanation:
+                  'Tropical Storm covers 39\u201373 mph. It only becomes a hurricane once winds reach 74 mph.',
               },
               {
                 id: 'q2',
-                prompt: 'Which alert level means hurricane conditions are EXPECTED within 36 hours?',
-                options: ['Hurricane Watch', 'Hurricane Warning', 'Tropical Advisory', 'All Clear'],
-                correctOptionIndex: 1,
-                explanation: 'A Warning is the more urgent of the two — conditions are expected, not just possible.',
+                prompt: 'A hurricane is classed a "Major Hurricane" starting at which category?',
+                options: ['Category 1', 'Category 2', 'Category 3', 'Category 4'],
+                correctOptionIndex: 2,
+                explanation: 'Major Hurricane means Category 3 or higher.',
               },
               {
                 id: 'q3',
-                prompt: 'What should you do if a hurricane\u2019s calm "eye" passes over you?',
-                options: [
-                  'Go outside, the storm has passed',
-                  'Stay sheltered — winds return suddenly',
-                  'Start cleaning up debris',
-                  'Call your emergency contacts to say it\u2019s over',
-                ],
-                correctOptionIndex: 1,
-                explanation: 'The eye is temporary. Strong winds return once it passes, often from a different direction.',
+                prompt: 'Under a Hurricane WATCH, about how much time do you have before conditions are possible?',
+                options: ['12 hours', '36 hours', '48 hours', '72 hours'],
+                correctOptionIndex: 2,
+                explanation:
+                  '48 hours for a Watch. 36 hours is the Warning threshold \u2014 don\u2019t mix the two up.',
               },
               {
                 id: 'q4',
-                prompt: 'Which of these is a good safe-room choice?',
+                prompt: 'Which of these is the SAFEST place to shelter during high winds?',
                 options: [
-                  'Top floor near a balcony',
-                  'Room with large glass doors',
+                  'Room with a large window facing the storm',
+                  'Top-floor bedroom with balcony access',
                   'Interior room with no windows',
-                  'Basement known to flood',
+                  'Garage with the door cracked open for ventilation',
                 ],
                 correctOptionIndex: 2,
-                explanation: 'An interior room with no windows minimises exposure to wind and flying debris.',
+                explanation:
+                  'Interior, windowless rooms are safest. Cracking a garage door open does NOT relieve ' +
+                  'pressure \u2014 that\u2019s a myth, and it lets wind and debris in.',
+              },
+              {
+                id: 'q5',
+                prompt: 'According to ODM, how much water should you store per person, per day?',
+                options: ['Half a gallon', 'One gallon', 'Two gallons', 'Five gallons'],
+                correctOptionIndex: 1,
+                explanation: 'At least one gallon per person, per day, per ODM\u2019s emergency kit guidance.',
+              },
+              {
+                id: 'q6',
+                prompt: 'What actually causes storm surge?',
+                options: [
+                  'Heavy rainfall overflowing rivers',
+                  'Sea water pushed onshore by the storm\u2019s winds',
+                  'Landslide debris blocking waterways',
+                  'Water mains bursting under pressure',
+                ],
+                correctOptionIndex: 1,
+                explanation:
+                  'Storm surge is sea water pushed onto land by the hurricane\u2019s winds \u2014 a different ' +
+                  'mechanism from river or rain flooding.',
+              },
+              {
+                id: 'q7',
+                prompt: 'The hurricane\u2019s eye passes over and it goes suddenly calm. What should you do?',
+                options: [
+                  'Go outside to check for damage',
+                  'Stay sheltered \u2014 winds return suddenly, often from the opposite direction',
+                  'Call your emergency contacts immediately',
+                  'Begin repairs while it\u2019s safe',
+                ],
+                correctOptionIndex: 1,
+                explanation: 'The eye is temporary. Leaving shelter during it is a common, dangerous mistake.',
+              },
+              {
+                id: 'q8',
+                prompt: 'When should you evacuate, if an evacuation order is given?',
+                options: [
+                  'Once winds start picking up',
+                  'As soon as roads are already flooding',
+                  'Immediately, before conditions worsen and roads become unsafe',
+                  'Only once the hurricane reaches Category 3',
+                ],
+                correctOptionIndex: 2,
+                explanation: 'Waiting for visible danger before evacuating is what makes evacuations deadly.',
+              },
+              {
+                id: 'q9',
+                prompt: 'Which of these should NOT be relied on for official hurricane updates?',
+                options: [
+                  'ODM alerts',
+                  'National Hurricane Center bulletins',
+                  'A forwarded voice note from a friend',
+                  'Local radio broadcasting ODM updates',
+                ],
+                correctOptionIndex: 2,
+                explanation:
+                  'Secondhand forwards are unverified and can be outdated or wrong \u2014 stick to official sources.',
+              },
+              {
+                id: 'q10',
+                prompt: 'What\u2019s the recommended plywood thickness for boarding up windows?',
+                options: ['1/4 inch', '1/2 inch', '1 inch', '2 inch'],
+                correctOptionIndex: 1,
+                explanation:
+                  'Half-inch plywood (marine plywood is best), pre-drilled for screws well before the storm.',
               },
             ],
           },
@@ -355,7 +421,7 @@ export const HURRICANE_LEVEL_1 = {
                 text: 'Finish securing loose outdoor items and check your emergency kit',
                 isBestChoice: true,
                 consequenceText:
-                  'Right instinct — a Warning means the storm is close. Finishing preparation immediately, ' +
+                  'Right instinct - a Warning means the storm is close. Finishing preparation immediately, ' +
                   'not waiting, is exactly what\u2019s needed.',
               },
               {
@@ -363,7 +429,7 @@ export const HURRICANE_LEVEL_1 = {
                 text: 'Wait and see how the weather looks in a few hours',
                 isBestChoice: false,
                 consequenceText:
-                  'A Warning means conditions are expected within 36 hours — waiting narrows your ' +
+                  'A Warning means conditions are expected within 36 hours - waiting narrows your ' +
                   'preparation time right when you need it most.',
               },
               {
@@ -371,7 +437,7 @@ export const HURRICANE_LEVEL_1 = {
                 text: 'Go out to buy supplies you haven\u2019t gotten yet',
                 isBestChoice: false,
                 consequenceText:
-                  'By Warning stage, roads and stores get busy and conditions can deteriorate fast — ' +
+                  'By Warning stage, roads and stores get busy and conditions can deteriorate fast - ' +
                   'supply runs should happen at Watch stage, not Warning stage.',
               },
             ],
@@ -396,7 +462,7 @@ export const HURRICANE_LEVEL_1 = {
                 text: 'Grab your emergency kit and evacuate to the designated shelter immediately',
                 isBestChoice: true,
                 consequenceText:
-                  'Correct — once an evacuation order is given, moving immediately with your prepared kit ' +
+                  'Correct - once an evacuation order is given, moving immediately with your prepared kit ' +
                   'is the safest response. Delaying risks being caught on unsafe roads.',
               },
               {
@@ -404,7 +470,7 @@ export const HURRICANE_LEVEL_1 = {
                 text: 'Stay to protect your property',
                 isBestChoice: false,
                 consequenceText:
-                  'Property can be repaired or replaced — an evacuation order means your location is no ' +
+                  'Property can be repaired or replaced - an evacuation order means your location is no ' +
                   'longer considered safe. Staying behind puts your life at risk.',
               },
               {
@@ -413,7 +479,7 @@ export const HURRICANE_LEVEL_1 = {
                 isBestChoice: false,
                 consequenceText:
                   'This is exactly why a family communication and meeting-point plan matters (a later ' +
-                  'mission covers this) — waiting past the safe window can trap everyone.',
+                  'mission covers this) - waiting past the safe window can trap everyone.',
               },
             ],
           },

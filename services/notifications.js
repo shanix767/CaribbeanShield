@@ -22,7 +22,8 @@ const LAST_KNOWN_STATE_KEY = "caribbeanShield:lastKnownHazardState";
 // during the exact moment it's most likely to fire (right after a refresh).
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),

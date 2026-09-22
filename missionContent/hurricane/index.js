@@ -3,7 +3,7 @@
 // Combines each level file into the single mission-content shape
 // GameContext's getMissionReadinessScore/getReadinessPercentage expect:
 // { missionId, levels: { 1: {...}, 2: {...}, ... } }. Only Level 1 exists
-// so far — add levels 2-6 here as they're built, same pattern.
+// so far - add levels 2-6 here as they're built, same pattern.
 
 import { HURRICANE_LEVEL_1 } from './level1';
 

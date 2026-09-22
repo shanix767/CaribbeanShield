@@ -18,11 +18,11 @@ import { TEST_STORM, TEST_EARTHQUAKES, TEST_VOLCANOES, TEST_FLOODS } from '../..
 import { COLORS } from '../../theme/colors';
 import { TEST_MODE } from '../../testMode';
 
-// Distance bands are just a rough visual cue, not an official watch/warning —
+// Distance bands are just a rough visual cue, not an official watch/warning -
 // see the note rendered on the storms card below.
 function proximityLabel(distanceKm) {
   if (distanceKm == null) return null;
-  if (distanceKm < 800) return { text: 'Close — worth tracking closely', color: COLORS.textOrange };
+  if (distanceKm < 800) return { text: 'Close - worth tracking closely', color: COLORS.textOrange };
   if (distanceKm < 2000) return { text: 'Moderate distance', color: COLORS.textGray };
   return { text: 'Far from Dominica', color: COLORS.textGreen };
 }
@@ -90,7 +90,7 @@ export default function HazardWatchScreen() {
     // top-level App component below (so the alert modal can appear
     // regardless of which tab is active), not here. A manual pull-to-refresh
     // updates the displayed data but does NOT re-trigger a notification
-    // check — only app open does.
+    // check - only app open does.
 
     setIsLoading(false);
     setIsRefreshing(false);
@@ -155,7 +155,7 @@ export default function HazardWatchScreen() {
                   <View key={index} style={styles.stormRow}>
                     <Text style={styles.stormTitle}>
                       {storm.classificationLabel} {storm.name}
-                      {storm.category ? ` — Category ${storm.category}` : ''}
+                      {storm.category ? ` - Category ${storm.category}` : ''}
                     </Text>
 
                     {storm.windMph != null && (
@@ -172,7 +172,7 @@ export default function HazardWatchScreen() {
 
                     {proximity && (
                       <Text style={[styles.stormDetail, { color: proximity.color }]}>
-                        ~{storm.distanceFromDominicaKm} km from Dominica —{' '}
+                        ~{storm.distanceFromDominicaKm} km from Dominica -{' '}
                         {proximity.text}
                       </Text>
                     )}
@@ -306,7 +306,7 @@ export default function HazardWatchScreen() {
 
           <Text style={styles.disclaimerText}>
             GDACS only tracks disaster-scale floods, not routine local
-            flooding — "no alerts" here doesn't mean it's safe from ordinary
+            flooding - "no alerts" here doesn't mean it's safe from ordinary
             heavy rain.
           </Text>
 
@@ -329,7 +329,7 @@ export default function HazardWatchScreen() {
             return regionalFloods.map((flood, index) => (
               <View key={index} style={styles.stormRow}>
                 <Text style={styles.stormTitle}>
-                  {flood.name} — {flood.country} ({flood.alertLevel})
+                  {flood.name} - {flood.country} ({flood.alertLevel})
                 </Text>
                 <Text style={styles.stormDetail}>{flood.summary}</Text>
                 {flood.distanceFromDominicaKm != null && (

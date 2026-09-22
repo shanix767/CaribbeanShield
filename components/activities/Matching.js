@@ -1,8 +1,8 @@
 // components/activities/Matching.js
 //
-// Reusable for any "match item to description" activity — e.g. L1.10
+// Reusable for any "match item to description" activity - e.g. L1.10
 // Emergency Equipment Match. Tap-to-select-then-tap-to-pair, not
-// drag-and-drop — drag-and-drop is far more fragile on mobile (fiddly hit
+// drag-and-drop - drag-and-drop is far more fragile on mobile (fiddly hit
 // targets, easy to mis-drop) for no real benefit here. The right-hand
 // column is shuffled once on mount so the pairs aren't trivially in the
 // same order as the left column.
@@ -13,7 +13,7 @@ import { COLORS } from '../../theme/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Fisher-Yates shuffle, written out with a temp variable rather than a
-// destructuring swap — easier to read and step through, which matters
+// destructuring swap - easier to read and step through, which matters
 // more here than saving a line.
 function shuffleArray(originalArray) {
   const shuffled = [...originalArray];
@@ -30,7 +30,7 @@ export default function Matching({ activity, onComplete }) {
   const { prompt, pairs } = activity.content;
 
   // Shuffled once when the activity is first shown, not on every
-  // re-render — otherwise the right column would reshuffle after every
+  // re-render - otherwise the right column would reshuffle after every
   // tap, which would be disorienting rather than challenging.
   const [shuffledRightItems] = useState(() => shuffleArray(pairs));
 

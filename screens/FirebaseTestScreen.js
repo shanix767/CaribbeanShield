@@ -1,6 +1,6 @@
 // screens/FirebaseTestScreen.js
 //
-// TEMPORARY — just confirms the Firebase native module initialized
+// TEMPORARY - just confirms the Firebase native module initialized
 // correctly on-device. Delete this file and its tab in App.js once
 // confirmed working; this isn't part of the real app.
 

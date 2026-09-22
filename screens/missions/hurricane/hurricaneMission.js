@@ -1,6 +1,6 @@
 // screens/missions/hurricane/hurricaneMission.js
 //
-// Content and metadata for the Hurricane Ready mission — separate from
+// Content and metadata for the Hurricane Ready mission - separate from
 // GameContext on purpose. GameContext only tracks PROGRESS (which level is
 // done, how much XP earned); this file describes WHAT each level actually
 // is. Adding a new mission later means adding a file like this one, not
@@ -11,7 +11,7 @@ export const HURRICANE_READY_MISSION = {
   title: 'Hurricane Ready',
   description: 'Learn how to prepare for and stay safe during a hurricane.',
   // TODO: replace with the real mission icon once art is ready (see the
-  // badge/icon asset list — 6 images needed total for this mission).
+  // badge/icon asset list - 6 images needed total for this mission).
   iconPlaceholder: '🌀',
 
   levels: [

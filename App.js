@@ -54,7 +54,7 @@ function MainTabs() {
       <Tab.Screen name="Shelter" component={ShelterScreen} options={{ title: 'Nearest Shelter' }} />
       <Tab.Screen name="Missions" component={MissionsListScreen} options={{ title: 'Missions' }} />
       <Tab.Screen name="FirebaseTest" component={FirebaseTestScreen} options={{ title: '🔥 FB Test' }} />
-      {/* TEMPORARY tab above — remove once Firebase is confirmed working */}
+      {/* TEMPORARY tab above - remove once Firebase is confirmed working */}
     </Tab.Navigator>
   );
 }
@@ -98,7 +98,7 @@ export default function App() {
           setActiveAlerts(changes);
         }
       } catch {
-        // Notifications are a nice-to-have — never block the app over this.
+        // Notifications are a nice-to-have - never block the app over this.
       }
     }
 
