@@ -1,41 +1,37 @@
 // App.js
 
 
-import { useState, useEffect } from "react";
-import { View, Text, Modal, TouchableOpacity, StyleSheet } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-
-import { GameProvider, useGameContext } from "./context/GameContext";
-import WelcomeScreen from "./screens/onboarding/Welcome";
-import ParishSelectionScreen from "./screens/onboarding/ParishSelection";
-import PretestScreen from "./screens/onboarding/Pretest";
-import HazardWatchScreen from "./screens/dashboard/hazardWatch";
+import { useState, useEffect } from 'react';
+import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+ 
+import { GameProvider, useGameContext } from './context/GameContext';
+import WelcomeScreen from './screens/onboarding/Welcome';
+import ParishSelectionScreen from './screens/onboarding/ParishSelection';
+import PermissionsScreen from './screens/onboarding/Permissions';
+import UserIdScreen from './screens/onboarding/UserId';
+import PretestScreen from './screens/onboarding/Pretest';
+import HazardWatchScreen from './screens/dashboard/hazardWatch';
 import ResourceHubScreen from './screens/dashboard/resourceHub';
-import ShelterScreen from "./screens/dashboard/shelter";
-import MissionsListScreen from "./screens/missions/missionsList";
-import MissionDetailScreen from "./screens/missions/missionDetail";
-import ActivityPlayerScreen from "./screens/missions/activityPlayer";
-import BadgePageScreen from "./screens/BadgePage";
-import FirebaseTestScreen from "./screens/FirebaseTestScreen"; // TEMPORARY
-
-import { fetchHurricaneWatchData } from "./services/hurricaneApi";
-import { fetchRecentEarthquakes } from "./services/earthquakeApi";
-import { fetchWeeklyVolcanoActivity } from "./services/volcanoApi";
-import { fetchRecentFloodAlerts } from "./services/floodApi";
-import {
-  TEST_STORM,
-  TEST_EARTHQUAKES,
-  TEST_VOLCANOES,
-  TEST_FLOODS,
-} from "./services/testData";
-import {
-  requestNotificationPermission,
-  checkForHazardChangesAndNotify,
-} from "./services/notifications";
-import { TEST_MODE } from "./testMode";
-import { COLORS } from "./theme/colors";
+import ShelterScreen from './screens/dashboard/shelter';
+import MissionsListScreen from './screens/missions/missionsList';
+import MissionDetailScreen from './screens/missions/missionDetail';
+import ActivityPlayerScreen from './screens/missions/activityPlayer';
+import BadgePageScreen from './screens/BadgePage';
+import PosttestScreen from './screens/Posttest';
+import LeaderboardScreen from './screens/Leaderboard';
+import FirebaseTestScreen from './screens/FirebaseTestScreen'; // TEMPORARY
+ 
+import { fetchHurricaneWatchData } from './services/hurricaneApi';
+import { fetchRecentEarthquakes } from './services/earthquakeApi';
+import { fetchWeeklyVolcanoActivity } from './services/volcanoApi';
+import { fetchRecentFloodAlerts } from './services/floodApi';
+import { TEST_STORM, TEST_EARTHQUAKES, TEST_VOLCANOES, TEST_FLOODS } from './services/testData';
+import { requestNotificationPermission, checkForHazardChangesAndNotify } from './services/notifications';
+import { TEST_MODE } from './testMode';
+import { COLORS } from './theme/colors';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -93,16 +89,16 @@ function MainTabs() {
 
 
 // Everything that used to be directly in App() now lives here instead,
-// since it needs useGameContext() - which only works INSIDE GameProvider,
+// since it needs useGameContext() — which only works INSIDE GameProvider,
 // not in the same component that renders GameProvider itself.
 function AppContent() {
   const { state, hasLoadedSavedState } = useGameContext();
   const [activeAlerts, setActiveAlerts] = useState([]);
-
+ 
   useEffect(() => {
     async function checkForChangesOnAppOpen() {
       await requestNotificationPermission();
-
+ 
       const [hurricaneResult, earthquakeResult, volcanoResult, floodResult] =
         await Promise.allSettled([
           fetchHurricaneWatchData(),
@@ -110,28 +106,20 @@ function AppContent() {
           fetchWeeklyVolcanoActivity(),
           fetchRecentFloodAlerts(),
         ]);
-
+ 
       const storms = TEST_MODE.hurricane
         ? TEST_STORM.storms
-        : hurricaneResult.status === "fulfilled"
-          ? hurricaneResult.value.storms
-          : [];
+        : hurricaneResult.status === 'fulfilled' ? hurricaneResult.value.storms : [];
       const earthquakes = TEST_MODE.earthquake
         ? TEST_EARTHQUAKES
-        : earthquakeResult.status === "fulfilled"
-          ? earthquakeResult.value
-          : [];
+        : earthquakeResult.status === 'fulfilled' ? earthquakeResult.value : [];
       const volcanicReports = TEST_MODE.volcano
         ? TEST_VOLCANOES
-        : volcanoResult.status === "fulfilled"
-          ? volcanoResult.value
-          : [];
+        : volcanoResult.status === 'fulfilled' ? volcanoResult.value : [];
       const floods = TEST_MODE.flood
         ? TEST_FLOODS
-        : floodResult.status === "fulfilled"
-          ? floodResult.value
-          : [];
-
+        : floodResult.status === 'fulfilled' ? floodResult.value : [];
+ 
       try {
         const changes = await checkForHazardChangesAndNotify({
           storms,
@@ -143,46 +131,40 @@ function AppContent() {
           setActiveAlerts(changes);
         }
       } catch {
-        // Notifications are a nice-to-have - never block the app over this.
+        // Notifications are a nice-to-have — never block the app over this.
       }
     }
-
+ 
     checkForChangesOnAppOpen();
   }, []);
-
+ 
   if (!hasLoadedSavedState) {
-    // Brief and deliberately plain - this only shows for the moment it
+    // Brief and deliberately plain — this only shows for the moment it
     // takes AsyncStorage to return, not long enough to need branding.
-    return (
-      <View
-        style={[styles.overlay, { backgroundColor: COLORS.backgroundCream }]}
-      />
-    );
+    return <View style={[styles.overlay, { backgroundColor: COLORS.backgroundCream }]} />;
   }
-
+ 
   return (
     <>
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{ headerShown: false }}
-          initialRouteName={state.onboardingCompleted ? "MainTabs" : "Welcome"}
+          initialRouteName={state.onboardingCompleted ? 'MainTabs' : 'Welcome'}
         >
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen
-            name="ParishSelection"
-            component={ParishSelectionScreen}
-          />
+          <Stack.Screen name="ParishSelection" component={ParishSelectionScreen} />
+          <Stack.Screen name="Permissions" component={PermissionsScreen} />
+          <Stack.Screen name="UserId" component={UserIdScreen} />
           <Stack.Screen name="Pretest" component={PretestScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
-          <Stack.Screen
-            name="ActivityPlayer"
-            component={ActivityPlayerScreen}
-          />
+          <Stack.Screen name="ActivityPlayer" component={ActivityPlayerScreen} />
           <Stack.Screen name="BadgePage" component={BadgePageScreen} />
+          <Stack.Screen name="Posttest" component={PosttestScreen} />
+          <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
         </Stack.Navigator>
       </NavigationContainer>
-
+ 
       <Modal
         visible={activeAlerts.length > 0}
         transparent
@@ -194,18 +176,15 @@ function AppContent() {
             <View style={styles.headerBand}>
               <Text style={styles.heading}>⚠️ Hazard Update</Text>
             </View>
-
+ 
             {activeAlerts.map((alert, index) => (
               <View key={index} style={styles.alertRow}>
                 <Text style={styles.alertTitle}>{alert.title}</Text>
                 <Text style={styles.alertBody}>{alert.body}</Text>
               </View>
             ))}
-
-            <TouchableOpacity
-              style={styles.dismissButton}
-              onPress={() => setActiveAlerts([])}
-            >
+ 
+            <TouchableOpacity style={styles.dismissButton} onPress={() => setActiveAlerts([])}>
               <Text style={styles.dismissButtonText}>Dismiss</Text>
             </TouchableOpacity>
           </View>
@@ -214,7 +193,7 @@ function AppContent() {
     </>
   );
 }
-
+ 
 export default function App() {
   return (
     <GameProvider>
@@ -222,8 +201,7 @@ export default function App() {
     </GameProvider>
   );
 }
-
-
+ 
 
 const styles = StyleSheet.create({
   overlay: {

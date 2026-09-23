@@ -7,6 +7,7 @@ import {
   useGameContext,
   STAGE_ORDER,
   areAllStageActivitiesAttempted,
+  areAllLevelActivitiesAttempted,
   getStageEarnedXp,
   getStagePossibleXp,
   getLevelEarnedXp,
@@ -96,14 +97,37 @@ export default function MissionDetailScreen() {
           stages: {},
         };
 
-        // Level 1 is always unlocked. Level N unlocks once Level N-1's
-        // badge has been earned - not reachable yet since only Level 1
-        // exists, but this keeps the screen correct as levels get added.
+        // Level 1 is always unlocked. Level N unlocks once Level N-1 has
+        // been fully attempted AND scored at least 75% of its possible
+        // XP - attempted alone isn't quite enough on its own (someone
+        // could click through getting almost everything wrong), but
+        // requiring the full 100% the badge needs would be too strict a
+        // gate on just moving forward. 75% overall, since XP is already
+        // correctness-weighted, reads as "engaged with everything and did
+        // reasonably well" rather than "answered every question right."
         const previousLevelNumber = levelNumber - 1;
-        const previousLevelBadgeId = mission.levels[previousLevelNumber]?.badgeId;
+        const previousLevelContent = mission.levels[previousLevelNumber];
+        const previousLevelProgress = missionProgress.levels[previousLevelNumber];
+
+        const previousLevelAllAttempted =
+          previousLevelContent &&
+          previousLevelProgress &&
+          areAllLevelActivitiesAttempted(previousLevelProgress, previousLevelContent);
+        const previousLevelPossibleXp = previousLevelContent
+          ? getLevelPossibleXp(previousLevelContent)
+          : 0;
+        const previousLevelEarnedXp = previousLevelProgress
+          ? getLevelEarnedXp(previousLevelProgress)
+          : 0;
+        const previousLevelScorePercent =
+          previousLevelPossibleXp > 0
+            ? Math.round((previousLevelEarnedXp / previousLevelPossibleXp) * 100)
+            : 0;
+        const previousLevelMetScoreThreshold = previousLevelScorePercent >= 75;
+
         const isLevelUnlocked =
           levelNumber === levelNumbers[0] ||
-          missionProgress.badgesEarned.includes(previousLevelBadgeId);
+          (previousLevelAllAttempted && previousLevelMetScoreThreshold);
 
         const levelEarnedXp = getLevelEarnedXp(levelProgress);
         const levelPossibleXp = getLevelPossibleXp(levelContent);
@@ -129,7 +153,9 @@ export default function MissionDetailScreen() {
 
             {!isLevelUnlocked && (
               <Text style={styles.lockedLabel}>
-                🔒 Complete Level {previousLevelNumber} first
+                {!previousLevelAllAttempted
+                  ? `🔒 Attempt every activity in Level ${previousLevelNumber} first`
+                  : `🔒 Score at least 75% in Level ${previousLevelNumber} to unlock (currently ${previousLevelScorePercent}%)`}
               </Text>
             )}
 

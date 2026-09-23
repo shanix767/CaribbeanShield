@@ -8,7 +8,7 @@
 //      OSRM's free public routing server
 //
 // IMPORTANT LIMITATION: OSRM's public demo server (router.project-osrm.org)
-// is meant for light/testing use, not production traffic - there's no
+// is meant for light/testing use, not production traffic — there's no
 // uptime guarantee and it can be slow or rate-limited under heavy use. Fine
 // for a coursework app, but if this app grows real users, a paid routing
 // provider (Mapbox, Google Directions) would be the more reliable choice.
@@ -16,7 +16,7 @@
 import * as Location from "expo-location";
 import { SHELTERS } from "./shelters";
 
-const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";
+const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1";
 
 function haversineDistanceKm(lat1, lon1, lat2, lon2) {
   const EARTH_RADIUS_KM = 6371;
@@ -50,6 +50,17 @@ async function fetchWithTimeout(url, timeoutMs = 10000) {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+// Asks for location permission only — doesn't fetch an actual GPS fix.
+// Used during onboarding, where the point is just obtaining permission
+// ahead of time; getCurrentUserLocation() (below) handles the real fetch
+// later, when the Shelter tab actually needs coordinates. Calling this
+// when permission's already granted just returns true immediately rather
+// than prompting a second time — expo-location's request is idempotent.
+export async function requestLocationPermission() {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  return status === "granted";
 }
 
 // Asks for location permission (if not already granted) and returns the
@@ -93,20 +104,25 @@ export function findNearestShelters(userLatitude, userLongitude, count = 5) {
   return withDistances.slice(0, count);
 }
 
-// Finds just the closest shelter - thin wrapper around findNearestShelters
+// Finds just the closest shelter — thin wrapper around findNearestShelters
 // for callers that only need the single nearest one.
 export function findNearestShelter(userLatitude, userLongitude) {
   const [nearest] = findNearestShelters(userLatitude, userLongitude, 1);
   return nearest;
 }
 
-// Fetches an actual road route between two points from OSRM, returning the
-// route's coordinates (for drawing on the map) plus real driving distance
-// and duration.
-export async function fetchRoadRoute(fromLat, fromLon, toLat, toLon) {
+// Fetches an actual route between two points from OSRM, returning the
+// route's coordinates (for drawing on the map) plus real distance and
+// duration for the given travel mode.
+//
+// travelMode: "driving" (default) or "walking". OSRM's public demo server
+// supports both (plus cycling), each as a genuinely different routed path —
+// walking can use footpaths/shortcuts a car route wouldn't, and its duration
+// assumes walking pace, not driving speed.
+export async function fetchRoadRoute(fromLat, fromLon, toLat, toLon, travelMode = "driving") {
   // OSRM wants "longitude,latitude" order, opposite of how most APIs do it.
   const requestUrl =
-    `${OSRM_ROUTE_URL}/${fromLon},${fromLat};${toLon},${toLat}` +
+    `${OSRM_ROUTE_URL}/${travelMode}/${fromLon},${fromLat};${toLon},${toLat}` +
     `?overview=full&geometries=geojson`;
 
   const response = await fetchWithTimeout(requestUrl);
@@ -123,7 +139,7 @@ export async function fetchRoadRoute(fromLat, fromLon, toLat, toLon) {
 
   const route = routeData.routes[0];
 
-  // GeoJSON coordinates come as [lon, lat] pairs - react-native-maps wants
+  // GeoJSON coordinates come as [lon, lat] pairs — react-native-maps wants
   // {latitude, longitude} objects, so flip them here.
   const routeCoordinates = route.geometry.coordinates.map(([lon, lat]) => ({
     latitude: lat,

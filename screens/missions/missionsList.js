@@ -40,6 +40,24 @@ export default function MissionsListScreen() {
         <Text style={styles.badgesLinkText}>🏅 View All Badges</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.badgesLink}
+        onPress={() => navigation.navigate('Leaderboard')}
+      >
+        <Text style={styles.badgesLinkText}>🏆 Leaderboard</Text>
+      </TouchableOpacity>
+
+      {state.pretestScore && (
+        <TouchableOpacity
+          style={styles.badgesLink}
+          onPress={() => navigation.navigate('Posttest')}
+        >
+          <Text style={styles.badgesLinkText}>
+            📈 {state.posttestScore ? 'Retake Posttest' : 'Take Posttest'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {ALL_MISSIONS.map((mission) => {
         const missionProgress = state.missions[mission.missionId];
         const badgesEarnedCount = missionProgress ? missionProgress.badgesEarned.length : 0;

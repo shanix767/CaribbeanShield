@@ -14,12 +14,13 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameContext } from '../../context/GameContext';
 import { PRETEST_ACTIVITY } from '../../missionContent/onboarding/pretest';
+import { savePretestScoreToFirestore } from '../../services/firestoreUsers';
 import Quiz from '../../components/activities/Quiz';
 import { COLORS } from '../../theme/colors';
 
 export default function PretestScreen() {
   const navigation = useNavigation();
-  const { dispatch } = useGameContext();
+  const { state, dispatch } = useGameContext();
   const [pretestScore, setPretestScore] = useState(null); // null while still taking it
 
   const totalQuestions = PRETEST_ACTIVITY.content.questions.length;
@@ -27,6 +28,12 @@ export default function PretestScreen() {
   function handlePretestComplete(score) {
     dispatch({ type: 'RECORD_PRETEST_SCORE', score, maxScore: totalQuestions });
     setPretestScore(score);
+    // Local state (above) is the source of truth the app runs on - this
+    // Firestore write is a best-effort sync on top of it, not a
+    // dependency; see services/firestoreUsers.js.
+    if (state.userId) {
+      savePretestScoreToFirestore(state.userId, score, totalQuestions);
+    }
   }
 
   function handleFinishOnboarding() {

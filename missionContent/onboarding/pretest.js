@@ -99,7 +99,7 @@ export const PRETEST_ACTIVITY = {
         options: ['Tropical Depression', 'Tropical Storm', 'Hurricane', 'Major Hurricane'],
         correctOptionIndex: 1,
         explanation:
-          'Tropical Storm covers 39\u201373 mph. It only becomes a hurricane once winds reach 74 mph.',
+          'Tropical Storm covers 39-73 mph. It only becomes a hurricane once winds reach 74 mph.',
       },
       {
         id: 'l1.12-q2',
@@ -114,7 +114,7 @@ export const PRETEST_ACTIVITY = {
         options: ['12 hours', '36 hours', '48 hours', '72 hours'],
         correctOptionIndex: 2,
         explanation:
-          '48 hours for a Watch. 36 hours is the Warning threshold \u2014 don\u2019t mix the two up.',
+          '48 hours for a Watch. 36 hours is the Warning threshold - don\u2019t mix the two up.',
       },
       {
         id: 'l1.12-q4',
@@ -128,7 +128,7 @@ export const PRETEST_ACTIVITY = {
         correctOptionIndex: 2,
         explanation:
           'Interior, windowless rooms are safest. Cracking a garage door open does NOT relieve ' +
-          'pressure \u2014 that\u2019s a myth, and it lets wind and debris in.',
+          'pressure - that\u2019s a myth, and it lets wind and debris in.',
       },
       {
         id: 'l1.12-q5',
@@ -148,7 +148,7 @@ export const PRETEST_ACTIVITY = {
         ],
         correctOptionIndex: 1,
         explanation:
-          'Storm surge is sea water pushed onto land by the hurricane\u2019s winds \u2014 a different ' +
+          'Storm surge is sea water pushed onto land by the hurricane\u2019s winds - a different ' +
           'mechanism from river or rain flooding.',
       },
       {
@@ -156,7 +156,7 @@ export const PRETEST_ACTIVITY = {
         prompt: 'The hurricane\u2019s eye passes over and it goes suddenly calm. What should you do?',
         options: [
           'Go outside to check for damage',
-          'Stay sheltered \u2014 winds return suddenly, often from the opposite direction',
+          'Stay sheltered - winds return suddenly, often from the opposite direction',
           'Call your emergency contacts immediately',
           'Begin repairs while it\u2019s safe',
         ],
@@ -186,7 +186,7 @@ export const PRETEST_ACTIVITY = {
         ],
         correctOptionIndex: 2,
         explanation:
-          'Secondhand forwards are unverified and can be outdated or wrong \u2014 stick to official sources.',
+          'Secondhand forwards are unverified and can be outdated or wrong - stick to official sources.',
       },
       {
         id: 'l1.12-q10',
