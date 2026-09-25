@@ -72,6 +72,15 @@ const initialState = {
   userId: null,
   userName: null,
   onboardingCompleted: false,
+  // Hurricane is deliberately not included here — it's always on and
+  // can't be disabled (see NotificationSettings screen), since it's the
+  // app's primary documented hazard. Only the toggleable ones live in
+  // state; the check logic (App.js) treats hurricane as permanently true.
+  notificationPreferences: {
+    floodWarnings: true,
+    volcanicActivity: true,
+    earthquakeAlerts: true,
+  },
   // { score, maxScore, completedAt } once taken, otherwise null. Kept
   // OUTSIDE the missions/parish fields RESET_PROGRESS wipes — see that
   // case below — so running a new evaluation participant through
@@ -85,6 +94,11 @@ const initialState = {
     // to this object as they're built in missionContent/.
     hurricaneReady: createEmptyMissionProgress(),
   },
+  // Side missions are standalone, single-checklist tasks (Build Emergency
+  // Kit, Find Nearest Shelter) — simpler than the main 6-level mission
+  // structure, so they get their own flat shape rather than reusing the
+  // level/stage nesting. Keyed by sideMissionId, filled in lazily.
+  sideMissions: {},
 };
 
 function gameReducer(state, action) {
@@ -101,6 +115,16 @@ function gameReducer(state, action) {
 
     case 'SET_COMMUNITY': {
       return { ...state, community: action.community };
+    }
+
+    case 'SET_NOTIFICATION_PREFERENCE': {
+      return {
+        ...state,
+        notificationPreferences: {
+          ...state.notificationPreferences,
+          [action.key]: action.value,
+        },
+      };
     }
 
     case 'SET_USER_ID': {
@@ -236,6 +260,26 @@ function gameReducer(state, action) {
       };
     }
 
+    case 'COMPLETE_SIDE_MISSION': {
+      // Unlike the main mission's badges (gated on a perfect score), a
+      // side mission's badge is awarded simply for completing/submitting
+      // it — these are self-reported real-world tasks ("I built my kit",
+      // "I know my nearest shelter"), not knowledge tests, so requiring
+      // a specific accuracy threshold wouldn't mean the same thing here.
+      const { sideMissionId, xpReward, badgeId } = action;
+      return {
+        ...state,
+        sideMissions: {
+          ...state.sideMissions,
+          [sideMissionId]: {
+            completed: true,
+            earnedXp: xpReward,
+            badgeId,
+          },
+        },
+      };
+    }
+
     case 'RESET_PROGRESS': {
       // Used to prepare the app for a new evaluation participant. Resets
       // parish, onboarding status, and all mission progress — so the next
@@ -266,8 +310,16 @@ const GameContext = createContext(null);
 // a manual storage clear whenever this shape changes again in the future,
 // an incompatible save is just treated as if there were no save at all —
 // the app starts fresh from initialState instead of crashing.
+//
+// MAINTENANCE: whenever a new top-level field gets added to initialState
+// that other code reads directly (not just optionally), add a check for
+// it here too — this has already been missed twice (sideMissions,
+// notificationPreferences), each time causing this exact category of
+// crash for anyone with an older save.
 function isSavedStateCompatible(savedState) {
   if (!savedState || !savedState.missions) return false;
+  if (!savedState.sideMissions || typeof savedState.sideMissions !== 'object') return false;
+  if (!savedState.notificationPreferences || typeof savedState.notificationPreferences !== 'object') return false;
 
   return Object.values(savedState.missions).every((mission) => {
     if (!mission.levels) return true; // a mission with no levels touched yet is fine
@@ -367,7 +419,18 @@ export function getTotalXp(state) {
       });
     });
   });
+  Object.values(state.sideMissions).forEach((sideMissionProgress) => {
+    total += sideMissionProgress.earnedXp;
+  });
   return total;
+}
+
+// Total XP earned across all side missions — used on the Home screen.
+export function getSideMissionXp(state) {
+  return Object.values(state.sideMissions).reduce(
+    (sum, sideMissionProgress) => sum + sideMissionProgress.earnedXp,
+    0
+  );
 }
 
 // Same idea as getTotalXp above, but scoped to one mission — used by the
@@ -420,7 +483,11 @@ export function getLevelPossibleXp(levelContent) {
 }
 
 export function getEarnedBadgeIds(state) {
-  return Object.values(state.missions).flatMap((mission) => mission.badgesEarned);
+  const mainMissionBadges = Object.values(state.missions).flatMap((mission) => mission.badgesEarned);
+  const sideMissionBadges = Object.values(state.sideMissions)
+    .filter((sideMissionProgress) => sideMissionProgress.completed)
+    .map((sideMissionProgress) => sideMissionProgress.badgeId);
+  return [...mainMissionBadges, ...sideMissionBadges];
 }
 
 // Whether every activity in a stage has been ATTEMPTED at least once —

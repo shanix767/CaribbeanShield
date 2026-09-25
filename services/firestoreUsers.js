@@ -1,19 +1,19 @@
 // services/firestoreUsers.js
 //
 // Writes user records (id, name, parish) and pretest/posttest scores to
-// Firestore - readable anytime from the Firebase console, independent of
-// Reset Progress or any single device. Not anonymised - records include
+// Firestore — readable anytime from the Firebase console, independent of
+// Reset Progress or any single device. Not anonymised — records include
 // the name the user gave during onboarding.
 //
 // User IDs are sequential (CS-100001, CS-100002, ...), assigned via a
-// Firestore transaction against a shared counter document - a plain
+// Firestore transaction against a shared counter document — a plain
 // "count existing users" approach would have a real race condition if two
 // people ever onboarded at the same moment (both could read the same
 // count and claim the same ID); a transaction makes that impossible, each
 // claim is atomic.
 //
 // Every function here is resilient to network failure AND to a hanging
-// write/read - same lesson as the hazard API services (fetchWithTimeout):
+// write/read — same lesson as the hazard API services (fetchWithTimeout):
 // without a timeout, an operation with no signal can sit "awaiting"
 // forever rather than rejecting. Racing every call against a timeout is
 // what stops that from freezing the UI; the underlying operation isn't
@@ -50,7 +50,7 @@ function raceAgainstTimeout(promise) {
   return Promise.race([promise, timeoutPromise]);
 }
 
-// Read-only look at what the next ID would be, WITHOUT claiming it - used
+// Read-only look at what the next ID would be, WITHOUT claiming it — used
 // to show the ID on screen as soon as it loads, before the user has
 // entered their name or tapped Continue. Since this doesn't increment
 // anything, it's safe to call as often as needed (e.g. every time this
@@ -68,7 +68,7 @@ export async function previewNextUserId() {
 }
 
 // Atomically increments the shared counter and returns the newly claimed
-// ID - called once, when the user actually continues past this screen.
+// ID — called once, when the user actually continues past this screen.
 export async function claimNextUserId() {
   try {
     const db = getFirestore();
@@ -89,6 +89,21 @@ export async function claimNextUserId() {
   }
 }
 
+export async function updateUserParishInFirestore(userId, parish) {
+  try {
+    const db = getFirestore();
+    const writePromise = setDoc(
+      doc(collection(db, USERS_COLLECTION), userId),
+      { parish },
+      { merge: true }
+    );
+    const result = await raceAgainstTimeout(writePromise);
+    return result !== 'TIMED_OUT';
+  } catch {
+    return false;
+  }
+}
+
 export async function createUserRecord(userId, name, parish) {
   try {
     const db = getFirestore();
@@ -101,7 +116,7 @@ export async function createUserRecord(userId, name, parish) {
     const result = await raceAgainstTimeout(writePromise);
     return result !== 'TIMED_OUT';
   } catch {
-    // No connectivity, or some other Firestore error - local onboarding
+    // No connectivity, or some other Firestore error — local onboarding
     // still proceeds regardless; see the file header for why this is
     // deliberately silent rather than surfaced to the player.
     return false;
@@ -116,7 +131,7 @@ export async function savePretestScoreToFirestore(userId, score, maxScore) {
       {
         pretestScore: { score, maxScore, completedAt: new Date().toISOString() },
       },
-      { merge: true } // merge, not replace - don't wipe name/parish/createdAt/posttest
+      { merge: true } // merge, not replace — don't wipe name/parish/createdAt/posttest
     );
     const result = await raceAgainstTimeout(writePromise);
     return result !== 'TIMED_OUT';
@@ -142,7 +157,7 @@ export async function savePosttestScoreToFirestore(userId, score, maxScore) {
   }
 }
 
-// Syncs total XP and badge count for the leaderboard - called from
+// Syncs total XP and badge count for the leaderboard — called from
 // GameContext whenever those specific numbers change (see the effect
 // there), not on every state change, so this doesn't fire on unrelated
 // updates like parish selection.
@@ -177,6 +192,7 @@ export async function fetchAllUsersForLeaderboard() {
       return {
         userId: data.userId,
         name: data.name,
+        parish: data.parish || null,
         totalXp: data.totalXp || 0,
         badgeCount: data.badgeCount || 0,
       };

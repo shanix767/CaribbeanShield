@@ -2,13 +2,15 @@
 //
 // Emergency contacts (tap-to-call) and shelter information. Contact
 // numbers sourced from ODM's own emergency contact list; shelter rules
-// condensed from ODM's shelter regulations document - paraphrased for an
+// condensed from ODM's shelter regulations document — paraphrased for an
 // app reading experience, not pasted as legal text, but the substance
 // (what's enforced, what to bring, what's not allowed) is kept accurate.
 
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getCurrentUserLocation, findNearestShelters } from '../../services/locationApi';
 import { COLORS } from '../../theme/colors';
 
 const EMERGENCY_CONTACTS = [
@@ -47,12 +49,28 @@ const SHELTER_RULES = [
   },
   {
     heading: 'Pets',
-    body: 'Pets are generally not allowed inside the main shelter area - check with ODM or your shelter manager ahead of time about arrangements for animals.',
+    body: 'Pets are generally not allowed inside the main shelter area — check with ODM or your shelter manager ahead of time about arrangements for animals.',
   },
 ];
 
 export default function ResourceHubScreen() {
   const navigation = useNavigation();
+  const [nearestShelters, setNearestShelters] = useState([]);
+  const [shelterLoadState, setShelterLoadState] = useState('loading'); // 'loading' | 'ready' | 'denied' | 'error'
+
+  useEffect(() => {
+    async function loadNearestShelters() {
+      try {
+        const location = await getCurrentUserLocation();
+        const nearest = findNearestShelters(location.latitude, location.longitude, 5);
+        setNearestShelters(nearest);
+        setShelterLoadState('ready');
+      } catch (error) {
+        setShelterLoadState(error.message?.includes('permission') ? 'denied' : 'error');
+      }
+    }
+    loadNearestShelters();
+  }, []);
 
   function handleCall(number) {
     Linking.openURL(`tel:${number}`);
@@ -67,8 +85,66 @@ export default function ResourceHubScreen() {
           style={styles.shelterLinkCard}
           onPress={() => navigation.navigate('Shelter')}
         >
-          <Text style={styles.shelterLinkText}>📍 Find your nearest shelter →</Text>
+          <Text style={styles.shelterLinkText}>📍 View shelter map & route →</Text>
         </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>Nearest Shelters</Text>
+
+        {shelterLoadState === 'loading' && (
+          <View style={styles.shelterStatusBox}>
+            <ActivityIndicator color={COLORS.backgroundGreenD} />
+          </View>
+        )}
+
+        {shelterLoadState === 'denied' && (
+          <View style={styles.shelterStatusBox}>
+            <Text style={styles.shelterStatusText}>
+              Enable location access to see your nearest shelters.
+            </Text>
+          </View>
+        )}
+
+        {shelterLoadState === 'error' && (
+          <View style={styles.shelterStatusBox}>
+            <Text style={styles.shelterStatusText}>
+              Couldn't determine your location right now. Try again shortly.
+            </Text>
+          </View>
+        )}
+
+        {shelterLoadState === 'ready' &&
+          nearestShelters.map(({ shelter, straightLineDistanceKm }) => (
+            <TouchableOpacity
+              key={`${shelter.name}-${shelter.community}`}
+              style={styles.shelterCard}
+              onPress={() =>
+                navigation.navigate('ShelterDetail', { shelter, distanceKm: straightLineDistanceKm })
+              }
+            >
+              <View style={styles.shelterCardHeader}>
+                <Text style={styles.shelterCardName}>{shelter.name}</Text>
+              </View>
+              <Text style={styles.shelterCardSubtitle}>{shelter.type} · {shelter.community}</Text>
+
+              <View style={styles.shelterCardRow}>
+                <Text style={styles.shelterCardDetail}>👥 {shelter.capacity} capacity</Text>
+                <Text style={styles.shelterCardDetail}>📍 {straightLineDistanceKm} km</Text>
+              </View>
+
+              {shelter.shelterManager && (
+                <Text style={styles.shelterCardManager}>
+                  Shelter Manager: {shelter.shelterManager}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
+
+        {shelterLoadState === 'ready' && (
+          <Text style={styles.capacityDisclaimer}>
+            Capacity figures are as published by ODM and may not reflect current conditions.
+            Shelter Manager names are from ODM's 2023 list and may have changed since.
+          </Text>
+        )}
 
         <Text style={styles.sectionTitle}>Emergency Contacts</Text>
         {EMERGENCY_CONTACTS.map((contact) => (
@@ -141,6 +217,61 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  shelterStatusBox: {
+    backgroundColor: COLORS.backgroundWhite,
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  shelterStatusText: {
+    color: COLORS.textGray,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  shelterCard: {
+    backgroundColor: COLORS.backgroundWhite,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+  },
+  shelterCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  shelterCardName: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: COLORS.textDark,
+    flex: 1,
+  },
+  shelterCardSubtitle: {
+    fontSize: 12,
+    color: COLORS.textGray,
+    marginTop: 2,
+  },
+  shelterCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  shelterCardDetail: {
+    fontSize: 13,
+    color: COLORS.textDark,
+  },
+  shelterCardManager: {
+    fontSize: 12,
+    color: COLORS.textGreen,
+    marginTop: 8,
+    fontWeight: 'bold',
+  },
+  capacityDisclaimer: {
+    fontSize: 11,
+    color: COLORS.textGray,
+    lineHeight: 16,
+    marginBottom: 20,
+    fontStyle: 'italic',
   },
   sectionTitle: {
     fontSize: 16,

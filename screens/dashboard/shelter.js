@@ -4,10 +4,11 @@
 // services/shelters.js, and an actual road route (via OSRM) to whichever
 // one is currently selected. Shows up to 5 nearby shelters rather than just
 // the single closest one, since the nearest shelter could be full, closed,
-// or have a blocked access road during a real event - having an easy way to
+// or have a blocked access road during a real event — having an easy way to
 // see and switch to an alternative matters here.
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRoute } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -27,6 +28,10 @@ import { COLORS } from '../../theme/colors';
 const SHELTER_COUNT = 5;
 
 export default function ShelterScreen() {
+  const navigationRoute = useRoute();
+  const focusShelterName = navigationRoute.params?.focusShelterName;
+  const focusShelterCommunity = navigationRoute.params?.focusShelterCommunity;
+
   const [userLocation, setUserLocation] = useState(null);
   const [nearbyShelters, setNearbyShelters] = useState([]); // [{shelter, straightLineDistanceKm}]
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -37,7 +42,7 @@ export default function ShelterScreen() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   // Loads the user's position and the list of nearby shelters. Only runs on
-  // initial load / manual refresh - selecting a different shelter from the
+  // initial load / manual refresh — selecting a different shelter from the
   // list does NOT re-run this, just re-fetches the route (see below).
   const loadUserAndShelters = useCallback(async () => {
     setIsLoading(true);
@@ -53,13 +58,25 @@ export default function ShelterScreen() {
         SHELTER_COUNT
       );
       setNearbyShelters(shelters);
-      setSelectedIndex(0); // default to nearest
+
+      // If we arrived here from a specific shelter (e.g. tapped in the
+      // Resource Hub), select that one instead of defaulting to nearest —
+      // falls back to nearest if it's somehow not in this computed list
+      // (e.g. two separate GPS reads placed it just outside the top 5).
+      const focusedIndex = focusShelterName
+        ? shelters.findIndex(
+            (entry) =>
+              entry.shelter.name === focusShelterName &&
+              entry.shelter.community === focusShelterCommunity
+          )
+        : -1;
+      setSelectedIndex(focusedIndex !== -1 ? focusedIndex : 0);
     } catch (error) {
       setErrorMessage(error.message);
     }
 
     setIsLoading(false);
-  }, []);
+  }, [focusShelterName, focusShelterCommunity]);
 
   // Fetches the road route to whichever shelter is currently selected.
   // Separate from loadUserAndShelters so switching shelters doesn't require
@@ -80,7 +97,7 @@ export default function ShelterScreen() {
       );
       setRoute(roadRoute);
     } catch {
-      // Road routing failing shouldn't block showing the map - fall back to
+      // Road routing failing shouldn't block showing the map — fall back to
       // no drawn route, straight-line distance still shown in the info card.
       setRoute(null);
     }
@@ -141,7 +158,7 @@ export default function ShelterScreen() {
             key={`${index}-${selectedIndex === index}`}
             coordinate={entry.shelter}
             title={entry.shelter.name}
-            description={`${entry.shelter.community} - ${entry.shelter.type}`}
+            description={`${entry.shelter.community} — ${entry.shelter.type}`}
             pinColor={index === selectedIndex ? COLORS.marker : COLORS.backgroundGreenD}
             onPress={() => setSelectedIndex(index)}
           />
@@ -196,7 +213,7 @@ export default function ShelterScreen() {
       <View style={styles.infoCard}>
         <Text style={styles.shelterName}>{selected.shelter.name}</Text>
         <Text style={styles.shelterDetail}>
-          {selected.shelter.community} - {selected.shelter.type}
+          {selected.shelter.community} — {selected.shelter.type}
         </Text>
 
         <View style={styles.modeToggleRow}>
@@ -251,7 +268,7 @@ export default function ShelterScreen() {
               ~{selected.straightLineDistanceKm} km straight-line distance
             </Text>
             <Text style={styles.offlineNote}>
-              Road route and map imagery need an internet connection - if
+              Road route and map imagery need an internet connection — if
               you're offline, this shelter's location and straight-line
               distance above are still accurate.
             </Text>

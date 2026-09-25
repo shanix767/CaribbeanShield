@@ -1,7 +1,7 @@
 // screens/BadgePage.js
 //
-// Shows every badge that exists across every mission's content - level
-// badges and each mission's own mission-wide badge - earned ones in full
+// Shows every badge that exists across every mission's content — level
+// badges and each mission's own mission-wide badge — earned ones in full
 // colour, unearned ones greyed out via reduced opacity (React Native has
 // no CSS grayscale filter for images, so opacity is the practical
 // stand-in). Reachable from the just-earned popup on MissionDetailScreen,
@@ -23,9 +23,11 @@ export default function BadgePageScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={styles.backLink}>← Back</Text>
-      </TouchableOpacity>
+      {navigation.canGoBack() && (
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backLink}>← Back</Text>
+        </TouchableOpacity>
+      )}
 
       <Text style={styles.title}>Badges</Text>
       <Text style={styles.subtitle}>
@@ -53,7 +55,9 @@ export default function BadgePageScreen() {
                 {badge.badgeName}
               </Text>
               <Text style={styles.badgeSource}>
-                {badge.levelNumber
+                {badge.missionId === null
+                  ? badge.missionTitle
+                  : badge.levelNumber
                   ? `${badge.missionTitle} · Level ${badge.levelNumber}`
                   : `${badge.missionTitle} · Mission Complete`}
               </Text>
@@ -70,7 +74,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
-    padding: 10,
+    padding: 20,
   },
   backLink: {
     color: COLORS.textGreen,
@@ -93,24 +97,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   badgeCard: {
-    width: '49%',
+    width: '48%',
     backgroundColor: COLORS.backgroundWhite,
-    borderRadius: 10,
-    padding: 5,
-    marginBottom: 5,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     alignItems: 'center',
   },
   badgeImage: {
-    width: 100,
-    height: 100,
+    width: 72,
+    height: 72,
     marginBottom: 8,
   },
   badgeImageLocked: {
     opacity: 0.25,
   },
   badgeImagePlaceholder: {
-    width: 100,
-    height: 100,
+    width: 72,
+    height: 72,
     marginBottom: 8,
     justifyContent: 'center',
     alignItems: 'center',
