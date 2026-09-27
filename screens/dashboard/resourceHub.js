@@ -1,17 +1,33 @@
 // screens/dashboard/resourceHub.js
 //
-// Emergency contacts (tap-to-call) and shelter information. Contact
+// Two tabs:
+//   Resources - emergency contacts (tap-to-call), shelter information, and
+//               links to the leaflet-style Hurricane Preparedness Guide
+//               (screens/PreparednessGuide.js) and the player's own Family
+//               Communication Plan (screens/CommunicationPlan.js).
+//   Respond   - "What to do if..." steps for each hazard
+//               (components/ResponseGuide.js).
+// Other screens can open the Respond tab on a given hazard with
+// navigation.navigate('Hub', { hazard: 'flood' }).
+//
+// Contact
 // numbers sourced from ODM's own emergency contact list; shelter rules
-// condensed from ODM's shelter regulations document — paraphrased for an
+// condensed from ODM's shelter regulations document - paraphrased for an
 // app reading experience, not pasted as legal text, but the substance
 // (what's enforced, what to bring, what's not allowed) is kept accurate.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { getCurrentUserLocation, findNearestShelters } from '../../services/locationApi';
+import ResponseGuide from '../../components/ResponseGuide';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
+
+const HUB_TABS = [
+  { id: 'resources', label: '📋 Resources' },
+  { id: 'respond', label: '🚨 Respond' },
+];
 
 const EMERGENCY_CONTACTS = [
   { name: 'Police, Fire & Ambulance', number: '911', note: 'General emergencies' },
@@ -49,12 +65,16 @@ const SHELTER_RULES = [
   },
   {
     heading: 'Pets',
-    body: 'Pets are generally not allowed inside the main shelter area — check with ODM or your shelter manager ahead of time about arrangements for animals.',
+    body: 'Pets are generally not allowed inside the main shelter area - check with ODM or your shelter manager ahead of time about arrangements for animals.',
   },
 ];
 
 export default function ResourceHubScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const scrollViewRef = useRef(null);
+  const [activeTab, setActiveTab] = useState('resources');
+  const [selectedHazardId, setSelectedHazardId] = useState('hurricane');
   const [nearestShelters, setNearestShelters] = useState([]);
   const [shelterLoadState, setShelterLoadState] = useState('loading'); // 'loading' | 'ready' | 'denied' | 'error'
 
@@ -72,130 +92,240 @@ export default function ResourceHubScreen() {
     loadNearestShelters();
   }, []);
 
+  // Opened with a hazard, e.g. from Hazard Watch: jump straight to its steps.
+  const requestedHazard = route.params?.hazard;
+  useEffect(() => {
+    if (requestedHazard) {
+      setSelectedHazardId(requestedHazard);
+      setActiveTab('respond');
+    }
+  }, [requestedHazard]);
+
+  function switchTab(tabId) {
+    setActiveTab(tabId);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+  }
+
   function handleCall(number) {
     Linking.openURL(`tel:${number}`);
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.screenTitle}>Resource Hub</Text>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Resource Hub"
+        subtitle="Contacts, shelters and what to do in an emergency"
+      />
+      <ScrollView ref={scrollViewRef} style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
 
-        <TouchableOpacity
-          style={styles.shelterLinkCard}
-          onPress={() => navigation.navigate('Shelter')}
-        >
-          <Text style={styles.shelterLinkText}>📍 View shelter map & route →</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.sectionTitle}>Nearest Shelters</Text>
-
-        {shelterLoadState === 'loading' && (
-          <View style={styles.shelterStatusBox}>
-            <ActivityIndicator color={COLORS.backgroundGreenD} />
-          </View>
-        )}
-
-        {shelterLoadState === 'denied' && (
-          <View style={styles.shelterStatusBox}>
-            <Text style={styles.shelterStatusText}>
-              Enable location access to see your nearest shelters.
-            </Text>
-          </View>
-        )}
-
-        {shelterLoadState === 'error' && (
-          <View style={styles.shelterStatusBox}>
-            <Text style={styles.shelterStatusText}>
-              Couldn't determine your location right now. Try again shortly.
-            </Text>
-          </View>
-        )}
-
-        {shelterLoadState === 'ready' &&
-          nearestShelters.map(({ shelter, straightLineDistanceKm }) => (
-            <TouchableOpacity
-              key={`${shelter.name}-${shelter.community}`}
-              style={styles.shelterCard}
-              onPress={() =>
-                navigation.navigate('ShelterDetail', { shelter, distanceKm: straightLineDistanceKm })
-              }
-            >
-              <View style={styles.shelterCardHeader}>
-                <Text style={styles.shelterCardName}>{shelter.name}</Text>
-              </View>
-              <Text style={styles.shelterCardSubtitle}>{shelter.type} · {shelter.community}</Text>
-
-              <View style={styles.shelterCardRow}>
-                <Text style={styles.shelterCardDetail}>👥 {shelter.capacity} capacity</Text>
-                <Text style={styles.shelterCardDetail}>📍 {straightLineDistanceKm} km</Text>
-              </View>
-
-              {shelter.shelterManager && (
-                <Text style={styles.shelterCardManager}>
-                  Shelter Manager: {shelter.shelterManager}
+        <View style={styles.tabBar}>
+          {HUB_TABS.map((tab) => {
+            const isActive = tab.id === activeTab;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.tabButton, isActive && styles.tabButtonActive]}
+                onPress={() => switchTab(tab.id)}
+              >
+                <Text style={[styles.tabButtonText, isActive && styles.tabButtonTextActive]}>
+                  {tab.label}
                 </Text>
-              )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {activeTab === 'respond' && (
+          <ResponseGuide
+            selectedHazardId={selectedHazardId}
+            onSelectHazard={setSelectedHazardId}
+          />
+        )}
+
+        {activeTab === 'resources' && (
+          <>
+          <TouchableOpacity
+            style={styles.shelterLinkCard}
+            onPress={() => navigation.navigate('Shelter')}
+          >
+            <Text style={styles.shelterLinkText}>📍 View shelter map & route →</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guideLinkCard}
+            onPress={() => navigation.navigate('PreparednessGuide')}
+          >
+            <Text style={styles.guideLinkTitle}>📖 Hurricane Preparedness Guide →</Text>
+            <Text style={styles.guideLinkSubtitle}>
+              All the mission guidance in one place, like a leaflet. Works offline.
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guideLinkCard}
+            onPress={() => navigation.navigate('CommunicationPlan')}
+          >
+            <Text style={styles.guideLinkTitle}>📇 My Family Communication Plan →</Text>
+            <Text style={styles.guideLinkSubtitle}>
+              Your household contacts and meeting places. Stored on this phone; works offline.
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.sectionTitle}>Nearest Shelters</Text>
+
+          {shelterLoadState === 'loading' && (
+            <View style={styles.shelterStatusBox}>
+              <ActivityIndicator color={COLORS.backgroundGreenD} />
+            </View>
+          )}
+
+          {shelterLoadState === 'denied' && (
+            <View style={styles.shelterStatusBox}>
+              <Text style={styles.shelterStatusText}>
+                Enable location access to see your nearest shelters.
+              </Text>
+            </View>
+          )}
+
+          {shelterLoadState === 'error' && (
+            <View style={styles.shelterStatusBox}>
+              <Text style={styles.shelterStatusText}>
+                Couldn't determine your location right now. Try again shortly.
+              </Text>
+            </View>
+          )}
+
+          {shelterLoadState === 'ready' &&
+            nearestShelters.map(({ shelter, straightLineDistanceKm }) => (
+              <TouchableOpacity
+                key={`${shelter.name}-${shelter.community}`}
+                style={styles.shelterCard}
+                onPress={() =>
+                  navigation.navigate('ShelterDetail', { shelter, distanceKm: straightLineDistanceKm })
+                }
+              >
+                <View style={styles.shelterCardHeader}>
+                  <Text style={styles.shelterCardName}>{shelter.name}</Text>
+                </View>
+                <Text style={styles.shelterCardSubtitle}>{shelter.type} · {shelter.community}</Text>
+
+                <View style={styles.shelterCardRow}>
+                  <Text style={styles.shelterCardDetail}>👥 {shelter.capacity} capacity</Text>
+                  <Text style={styles.shelterCardDetail}>📍 {straightLineDistanceKm} km</Text>
+                </View>
+
+                {shelter.shelterManager && (
+                  <Text style={styles.shelterCardManager}>
+                    Shelter Manager: {shelter.shelterManager}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+
+          {shelterLoadState === 'ready' && (
+            <Text style={styles.capacityDisclaimer}>
+              Capacity figures are as published by ODM and may not reflect current conditions.
+              Shelter Manager names are from ODM's 2023 list and may have changed since.
+            </Text>
+          )}
+
+          <Text style={styles.sectionTitle}>Emergency Contacts</Text>
+          {EMERGENCY_CONTACTS.map((contact) => (
+            <TouchableOpacity
+              key={contact.name}
+              style={styles.contactRow}
+              onPress={() => handleCall(contact.number)}
+            >
+              <View style={styles.contactInfo}>
+                <Text style={styles.contactName}>{contact.name}</Text>
+                <Text style={styles.contactNote}>{contact.note}</Text>
+              </View>
+              <Text style={styles.callIcon}>📞</Text>
             </TouchableOpacity>
           ))}
 
-        {shelterLoadState === 'ready' && (
-          <Text style={styles.capacityDisclaimer}>
-            Capacity figures are as published by ODM and may not reflect current conditions.
-            Shelter Manager names are from ODM's 2023 list and may have changed since.
+          <Text style={styles.sectionTitle}>Hospitals</Text>
+          {HOSPITALS.map((hospital) => (
+            <TouchableOpacity
+              key={hospital.name}
+              style={styles.contactRow}
+              onPress={() => handleCall(hospital.number)}
+            >
+              <View style={styles.contactInfo}>
+                <Text style={styles.contactName}>{hospital.name}</Text>
+                <Text style={styles.contactNote}>{hospital.location}</Text>
+              </View>
+              <Text style={styles.callIcon}>📞</Text>
+            </TouchableOpacity>
+          ))}
+
+          <Text style={styles.sectionTitle}>What to Expect at a Shelter</Text>
+          {SHELTER_RULES.map((rule) => (
+            <View key={rule.heading} style={styles.ruleCard}>
+              <Text style={styles.ruleHeading}>{rule.heading}</Text>
+              <Text style={styles.ruleBody}>{rule.body}</Text>
+            </View>
+          ))}
+
+          <Text style={styles.sourceNote}>
+            Contact and shelter information sourced from Dominica's Office of Disaster Management (ODM).
           </Text>
+          </>
         )}
-
-        <Text style={styles.sectionTitle}>Emergency Contacts</Text>
-        {EMERGENCY_CONTACTS.map((contact) => (
-          <TouchableOpacity
-            key={contact.name}
-            style={styles.contactRow}
-            onPress={() => handleCall(contact.number)}
-          >
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactName}>{contact.name}</Text>
-              <Text style={styles.contactNote}>{contact.note}</Text>
-            </View>
-            <Text style={styles.callIcon}>📞</Text>
-          </TouchableOpacity>
-        ))}
-
-        <Text style={styles.sectionTitle}>Hospitals</Text>
-        {HOSPITALS.map((hospital) => (
-          <TouchableOpacity
-            key={hospital.name}
-            style={styles.contactRow}
-            onPress={() => handleCall(hospital.number)}
-          >
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactName}>{hospital.name}</Text>
-              <Text style={styles.contactNote}>{hospital.location}</Text>
-            </View>
-            <Text style={styles.callIcon}>📞</Text>
-          </TouchableOpacity>
-        ))}
-
-        <Text style={styles.sectionTitle}>What to Expect at a Shelter</Text>
-        {SHELTER_RULES.map((rule) => (
-          <View key={rule.heading} style={styles.ruleCard}>
-            <Text style={styles.ruleHeading}>{rule.heading}</Text>
-            <Text style={styles.ruleBody}>{rule.body}</Text>
-          </View>
-        ))}
-
-        <Text style={styles.sourceNote}>
-          Contact and shelter information sourced from Dominica's Office of Disaster Management (ODM).
-        </Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.backgroundWhite,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.backgroundGreenD,
+  },
+  tabButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.textGreen,
+  },
+  tabButtonTextActive: {
+    color: COLORS.textWhite,
+  },
+  guideLinkCard: {
+    backgroundColor: COLORS.backgroundWhite,
+    borderWidth: 1,
+    borderColor: COLORS.backgroundGreenD,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
+  },
+  guideLinkTitle: {
+    color: COLORS.textGreen,
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  guideLinkSubtitle: {
+    color: COLORS.textGray,
+    fontSize: 12,
+    marginTop: 4,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
+  },
+  scrollArea: {
+    flex: 1,
   },
   scrollContent: {
     padding: 20,
@@ -214,7 +344,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   shelterLinkText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontWeight: 'bold',
     fontSize: 14,
   },
