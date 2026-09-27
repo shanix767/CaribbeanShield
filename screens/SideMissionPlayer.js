@@ -7,13 +7,13 @@
 // kit"), so the badge rewards the act of doing the task honestly, not a
 // perfect-accuracy result the way the main mission's knowledge tests do.
 
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameContext } from '../context/GameContext';
 import { SIDE_MISSIONS } from '../missionContent/sideMissions';
 import Checklist from '../components/activities/Checklist';
 import { COLORS } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 export default function SideMissionPlayerScreen() {
   const navigation = useNavigation();
@@ -51,14 +51,10 @@ export default function SideMissionPlayerScreen() {
 
   return (
     <View style={styles.wrapper}>
-      <SafeAreaView edges={["top"]} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backLink}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {sideMission.icon} {sideMission.title}
-        </Text>
-      </SafeAreaView>
+      <ScreenHeader
+        title={`${sideMission.icon} ${sideMission.title}`}
+        onBack={() => navigation.goBack()}
+      />
 
       <Checklist
         activity={{
@@ -66,6 +62,7 @@ export default function SideMissionPlayerScreen() {
           title: sideMission.title,
           xpReward: sideMission.xpReward,
           content: sideMission.content,
+          selfReport: true,
         }}
         onComplete={handleComplete}
       />
@@ -76,21 +73,7 @@ export default function SideMissionPlayerScreen() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-  },
-  header: {
-    backgroundColor: COLORS.backgroundGreenD,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  backLink: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+    backgroundColor: COLORS.backgroundCream,
   },
   centeredContainer: {
     flex: 1,
