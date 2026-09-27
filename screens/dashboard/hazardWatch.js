@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { StatusBar } from 'expo-status-bar';
 import {
   View,
   Text,
@@ -16,6 +15,7 @@ import { fetchWeeklyVolcanoActivity } from '../../services/volcanoApi';
 import { fetchRecentFloodAlerts } from '../../services/floodApi';
 import { TEST_STORM, TEST_EARTHQUAKES, TEST_VOLCANOES, TEST_FLOODS } from '../../services/testData';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 import { TEST_MODE } from '../../testMode';
 
 // Distance bands are just a rough visual cue, not an official watch/warning -
@@ -25,6 +25,20 @@ function proximityLabel(distanceKm) {
   if (distanceKm < 800) return { text: 'Close - worth tracking closely', color: COLORS.textOrange };
   if (distanceKm < 2000) return { text: 'Moderate distance', color: COLORS.textGray };
   return { text: 'Far from Dominica', color: COLORS.textGreen };
+}
+
+// Turns a raw fetch error into something a participant can understand.
+// With no connection the phone reports low-level errors such as
+// "java.net.UnknownHostException", which mean nothing to a user.
+function friendlyFetchError(sourceName, errorMessage) {
+  const message = String(errorMessage || '');
+  const looksOffline = /UnknownHost|Unable to resolve|Network request failed|fetch failed|timed? ?out|abort/i.test(
+    message
+  );
+  if (looksOffline) {
+    return `No internet connection. ${sourceName} data will load when you're back online - pull down to refresh.`;
+  }
+  return `Couldn't reach ${sourceName} right now. Pull down to try again.`;
 }
 
 export default function HazardWatchScreen() {
@@ -102,10 +116,15 @@ export default function HazardWatchScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color={COLORS.textGreen} />
-        <Text style={styles.loadingText}>Checking the Atlantic...</Text>
-        <StatusBar style="auto" />
+      <View style={styles.screenContainer}>
+      <ScreenHeader
+        title="Hazard Watch"
+        subtitle="Hurricanes, earthquakes, volcanoes and floods"
+      />
+        <View style={styles.centeredContainer}>
+          <ActivityIndicator size="large" color={COLORS.textGreen} />
+          <Text style={styles.loadingText}>Checking for hazards...</Text>
+        </View>
       </View>
     );
   }
@@ -114,7 +133,12 @@ export default function HazardWatchScreen() {
 
   return (
     <View style={styles.screenContainer}>
+      <ScreenHeader
+        title="Hazard Watch"
+        subtitle="Hurricanes, earthquakes, volcanoes and floods"
+      />
       <ScrollView
+        style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
@@ -124,15 +148,13 @@ export default function HazardWatchScreen() {
           />
         }
       >
-        <Text style={styles.screenTitle}>Hurricane Watch</Text>
-
         {/* Active storms section */}
         <View style={styles.card}>
           <Text style={styles.cardHeading}>Atlantic Basin</Text>
 
           {watchData.stormsError && (
             <Text style={styles.errorText}>
-              Couldn't reach NHC right now: {watchData.stormsError}
+              {friendlyFetchError('Hurricane (NHC)', watchData.stormsError)}
             </Text>
           )}
 
@@ -199,7 +221,7 @@ export default function HazardWatchScreen() {
 
           {watchData.conditionsError && (
             <Text style={styles.errorText}>
-              Couldn't reach OpenWeatherMap: {watchData.conditionsError}
+              {friendlyFetchError('Weather', watchData.conditionsError)}
             </Text>
           )}
 
@@ -227,7 +249,7 @@ export default function HazardWatchScreen() {
 
           {earthquakesError && (
             <Text style={styles.errorText}>
-              Couldn't reach USGS right now: {earthquakesError}
+              {friendlyFetchError('Earthquake (USGS)', earthquakesError)}
             </Text>
           )}
 
@@ -269,7 +291,7 @@ export default function HazardWatchScreen() {
 
           {volcanicReportsError && (
             <Text style={styles.errorText}>
-              Couldn't reach GVP right now: {volcanicReportsError}
+              {friendlyFetchError('Volcano (GVP)', volcanicReportsError)}
             </Text>
           )}
 
@@ -312,7 +334,7 @@ export default function HazardWatchScreen() {
 
           {floodsError && (
             <Text style={styles.errorText}>
-              Couldn't reach GDACS right now: {floodsError}
+              {friendlyFetchError('Flood (GDACS)', floodsError)}
             </Text>
           )}
 
@@ -347,7 +369,6 @@ export default function HazardWatchScreen() {
           })()}
         </View>
       </ScrollView>
-      <StatusBar style="auto" />
     </View>
   );
 }
@@ -357,9 +378,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
   },
+  scrollArea: {
+    flex: 1,
+  },
   scrollContent: {
     padding: 20,
-    paddingTop: 60,
   },
   centeredContainer: {
     flex: 1,

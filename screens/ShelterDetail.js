@@ -3,13 +3,14 @@
 // Full detail view for one shelter, reached by tapping a card in the
 // Resource Hub's Nearest Shelters section. "Get Directions" navigates to
 // the Shelter tab's own map/route screen, pre-selecting this specific
-// shelter — reuses the existing in-app OSRM route drawing rather than
+// shelter - reuses the existing in-app OSRM route drawing rather than
 // bouncing out to an external Maps app.
 
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 const ODM_GENERAL_NUMBER = '2664411';
 
@@ -30,14 +31,14 @@ export default function ShelterDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={styles.backLink}>← Back</Text>
-      </TouchableOpacity>
-
+    <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <ScreenHeader
+        title={shelter.name}
+        subtitle={`${shelter.type} · ${shelter.community}`}
+        onBack={() => navigation.goBack()}
+      />
+      <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>{shelter.name}</Text>
-        <Text style={styles.subtitle}>{shelter.type} · {shelter.community}</Text>
 
         <View style={styles.detailCard}>
           <View style={styles.detailRow}>
@@ -65,7 +66,7 @@ export default function ShelterDetailScreen() {
         <Text style={styles.disclaimer}>
           Capacity as published by ODM and may not reflect current conditions. Shelter Manager
           names are from ODM's 2023 list and may have changed since. No live open/closed status
-          is available — contact ODM to confirm activation before travelling during an emergency.
+          is available - contact ODM to confirm activation before travelling during an emergency.
         </Text>
 
         <TouchableOpacity style={styles.callButton} onPress={handleCallODM}>
@@ -76,11 +77,16 @@ export default function ShelterDetailScreen() {
           <Text style={styles.directionsButtonText}>Get Directions →</Text>
         </TouchableOpacity>
       </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundCream,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,

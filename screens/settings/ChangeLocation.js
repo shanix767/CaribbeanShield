@@ -1,7 +1,7 @@
 // screens/settings/ChangeLocation.js
 //
 // Lets a user update their parish/community after onboarding. Copy here
-// is deliberately more conservative than a typical mockup might claim —
+// is deliberately more conservative than a typical mockup might claim -
 // parish currently drives the Leaderboard's "by parish" ranking; it does
 // NOT change hazard alerts (island-wide National Hurricane Center/USGS/
 // GVP/GDACS data, same for everyone) or the Resource Hub's nearest
@@ -11,10 +11,11 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGameContext } from '../../context/GameContext';
 import { updateUserParishInFirestore } from '../../services/firestoreUsers';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader, { HeaderButton } from '../../components/ScreenHeader';
 
 const PARISHES = [
   'Saint Andrew',
@@ -31,6 +32,9 @@ const PARISHES = [
 
 export default function ChangeLocationScreen() {
   const navigation = useNavigation();
+  // The picker sheet slides up from the bottom edge, so it needs the
+  // phone's bottom inset to keep the last parish clear of the nav bar.
+  const insets = useSafeAreaInsets();
   const { state, dispatch } = useGameContext();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pendingParish, setPendingParish] = useState(state.parish);
@@ -54,17 +58,14 @@ export default function ChangeLocationScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backLink}>← Change Location</Text>
-        </TouchableOpacity>
-        {hasChanges && (
-          <TouchableOpacity onPress={handleSave}>
-            <Text style={styles.saveLink}>Save</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+    <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <ScreenHeader
+        title="Change Location"
+        onBack={() => navigation.goBack()}
+        backLabel="Settings"
+        right={hasChanges ? <HeaderButton label="Save" onPress={handleSave} /> : null}
+      />
+      <View style={styles.container}>
 
       <Text style={styles.description}>
         This updates your parish, used for the Island leaderboard's parish rankings. Hazard
@@ -99,7 +100,7 @@ export default function ChangeLocationScreen() {
           activeOpacity={1}
           onPress={() => setIsPickerOpen(false)}
         >
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { paddingBottom: 16 + insets.bottom }]}>
             <Text style={styles.modalTitle}>Select your parish</Text>
             <FlatList
               data={PARISHES}
@@ -120,11 +121,16 @@ export default function ChangeLocationScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundCream,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
@@ -192,7 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -2,16 +2,17 @@
 //
 // Dominica's 10 parishes, plus an optional free-text Community field for
 // more specific alert targeting later. The parish picker is a plain
-// Modal + list, not a native <Picker> component — @react-native-picker/
+// Modal + list, not a native <Picker> component - @react-native-picker/
 // picker is a native module and would mean another EAS rebuild just for
 // a dropdown; this gets the same visual result in pure JS.
 
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGameContext } from '../../context/GameContext';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const PARISHES = [
   'Saint Andrew',
@@ -28,6 +29,9 @@ const PARISHES = [
 
 export default function ParishSelectionScreen() {
   const navigation = useNavigation();
+  // The picker sheet slides up from the bottom edge, so it needs the
+  // phone's bottom inset to keep the last parish clear of the nav bar.
+  const insets = useSafeAreaInsets();
   const { state, dispatch } = useGameContext();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [communityInput, setCommunityInput] = useState(state.community || '');
@@ -46,10 +50,14 @@ export default function ParishSelectionScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <ScreenHeader
+        title="Where are you based?"
+        subtitle="Step 1 of 4 · Your parish is used for the parish leaderboard."
+        onBack={() => navigation.goBack()}
+      />
+      <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Where are you based?</Text>
-        <Text style={styles.subtitle}>Your parish helps tailor shelter and hazard information to your area.</Text>
 
         <Text style={styles.fieldLabel}>Parish</Text>
         <TouchableOpacity style={styles.dropdownField} onPress={() => setIsPickerOpen(true)}>
@@ -70,7 +78,7 @@ export default function ParishSelectionScreen() {
 
         <View style={styles.infoNote}>
           <Text style={styles.infoNoteText}>
-            ℹ️ Used for parish-level alerts only — never shared or tracked.
+            ℹ️ Only used to group scores on the parish leaderboard. Hazard alerts cover the whole island.
           </Text>
         </View>
       </View>
@@ -89,7 +97,7 @@ export default function ParishSelectionScreen() {
           activeOpacity={1}
           onPress={() => setIsPickerOpen(false)}
         >
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { paddingBottom: 16 + insets.bottom }]}>
             <Text style={styles.modalTitle}>Select your parish</Text>
             <FlatList
               data={PARISHES}
@@ -110,11 +118,16 @@ export default function ParishSelectionScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundCream,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
@@ -123,17 +136,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.textGreen,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textGray,
-    marginBottom: 24,
   },
   fieldLabel: {
     fontSize: 13,
@@ -194,7 +196,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -2,20 +2,36 @@
 //
 // First screen a new install ever sees - before parish selection and the
 // pretest. Purely informational, no state changes here.
+//
+// Shows the full CaribbeanShield logo (assets/CS-logo2.png). The logo
+// already contains the app name and tagline, so there's no separate text
+// title - the name would otherwise appear twice.
 
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 
+const APP_LOGO = require('../../assets/CS-logo2.png');
+
 export default function WelcomeScreen() {
   const navigation = useNavigation();
+  const { width, height } = useWindowDimensions();
+
+  // Big on a phone, but capped so it never pushes the text and button off
+  // a short screen or looks oversized on a tablet.
+  const logoSize = Math.min(width * 0.8, height * 0.45, 380);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
-        <Text style={styles.icon}>🌀</Text>
-        <Text style={styles.title}>CaribbeanShield</Text>
+        <Image
+          source={APP_LOGO}
+          style={{ width: logoSize, height: logoSize, marginBottom: 20 }}
+          resizeMode="contain"
+          accessible
+          accessibilityLabel="CaribbeanShield. Prepare, protect, together. A safer tomorrow."
+        />
         <Text style={styles.subtitle}>
           Learn, plan, and prepare for hurricane season and other hazards across Dominica -
           through missions, real emergency information, and a live hazard dashboard.
@@ -44,16 +60,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  icon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.textGreen,
-    marginBottom: 16,
-  },
   subtitle: {
     fontSize: 15,
     lineHeight: 22,
@@ -67,7 +73,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   getStartedButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

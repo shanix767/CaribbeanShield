@@ -1,8 +1,8 @@
 // GameContext.js
 //
 // One shared game state for ALL missions (Hurricane Ready, and whatever
-// gets added later — Volcanic Hazard Ready, Flash Flood Aware, etc.). The
-// reducer doesn't know anything about hurricanes specifically — it just
+// gets added later - Volcanic Hazard Ready, Flash Flood Aware, etc.). The
+// reducer doesn't know anything about hurricanes specifically - it just
 // tracks progress per missionId/level/stage/activity, so adding a new
 // mission or level later means adding content to missionContent/, not
 // writing new reducer code.
@@ -16,7 +16,7 @@
 // attempt), not just a running stage total. This is what makes retrying
 // possible: redoing an activity overwrites its stored XP with the new
 // attempt's result rather than being blocked or adding on top of the old
-// value — the player's score always reflects their latest attempt, and a
+// value - the player's score always reflects their latest attempt, and a
 // level's badge is only awarded once every activity's XP sums to that
 // level's full possible total (see getLevelEarnedXp/getLevelPossibleXp
 // and how ActivityPlayerScreen uses them).
@@ -24,9 +24,12 @@
 // Persists to AsyncStorage so progress survives closing the app, and loads
 // that saved progress back in on startup.
 
-import { createContext, useContext, useReducer, useEffect, useState } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncUserProgressToFirestore } from '../services/firestoreUsers';
+import { clearCommunicationPlan } from '../services/communicationPlanStorage';
+import { ALL_MISSIONS } from '../missionContent';
+import { getAllSideMissions } from '../missionContent/sideMissions';
 
 const GAME_STATE_STORAGE_KEY = 'caribbeanShield:gameState';
 
@@ -72,7 +75,7 @@ const initialState = {
   userId: null,
   userName: null,
   onboardingCompleted: false,
-  // Hurricane is deliberately not included here — it's always on and
+  // Hurricane is deliberately not included here - it's always on and
   // can't be disabled (see NotificationSettings screen), since it's the
   // app's primary documented hazard. Only the toggleable ones live in
   // state; the check logic (App.js) treats hurricane as permanently true.
@@ -82,8 +85,8 @@ const initialState = {
     earthquakeAlerts: true,
   },
   // { score, maxScore, completedAt } once taken, otherwise null. Kept
-  // OUTSIDE the missions/parish fields RESET_PROGRESS wipes — see that
-  // case below — so running a new evaluation participant through
+  // OUTSIDE the missions/parish fields RESET_PROGRESS wipes - see that
+  // case below - so running a new evaluation participant through
   // onboarding again doesn't silently erase the previous participant's
   // score before it's been recorded elsewhere.
   pretestScore: null,
@@ -94,10 +97,12 @@ const initialState = {
     // to this object as they're built in missionContent/.
     hurricaneReady: createEmptyMissionProgress(),
   },
-  // Side missions are standalone, single-checklist tasks (Build Emergency
-  // Kit, Find Nearest Shelter) — simpler than the main 6-level mission
-  // structure, so they get their own flat shape rather than reusing the
-  // level/stage nesting. Keyed by sideMissionId, filled in lazily.
+  // Side missions are standalone practical tasks (Build Emergency Bag,
+  // Find Nearest Shelter, Family Communication Plan) - simpler than the
+  // main 6-level mission structure, so they get their own flat shape rather
+  // than reusing the level/stage nesting. Keyed by sideMissionId, filled in
+  // lazily. The communication plan's contents are NOT stored here, only its
+  // completion/XP/badge; see services/communicationPlanStorage.js.
   sideMissions: {},
 };
 
@@ -147,6 +152,15 @@ function gameReducer(state, action) {
       };
     }
 
+    case 'SKIP_PRETEST': {
+      // The player chose to skip the pretest. RESET_PROGRESS deliberately
+      // carries the previous participant's pretestScore forward, so it has
+      // to be cleared here - otherwise this player's posttest would be
+      // compared against someone else's baseline. Taking the pretest
+      // overwrites it in the same way, so nothing extra is lost.
+      return { ...state, pretestScore: null };
+    }
+
     case 'RECORD_POSTTEST_SCORE': {
       const { score, maxScore } = action;
       return {
@@ -157,13 +171,13 @@ function gameReducer(state, action) {
 
     case 'COMPLETE_ACTIVITY': {
       // Dispatched every time the player finishes one activity inside one
-      // stage of one level — e.g. finishing the "Hurricane Hazards Quiz"
+      // stage of one level - e.g. finishing the "Hurricane Hazards Quiz"
       // inside Level 1's Learn stage. xpReward here is however much XP
       // THIS ATTEMPT actually earned (computed by the activity component
-      // itself based on correctness — see components/activities/), not
+      // itself based on correctness - see components/activities/), not
       // necessarily the activity's full possible XP.
       //
-      // Deliberately allows re-completing an already-attempted activity —
+      // Deliberately allows re-completing an already-attempted activity -
       // this is what makes retrying to improve a score possible. The
       // stored value for that activity is simply overwritten with this
       // attempt's result, so a player's score always reflects their most
@@ -207,7 +221,7 @@ function gameReducer(state, action) {
     case 'COMPLETE_LEVEL': {
       // Dispatched only when the player finishes a level's final Recover
       // activity AND their total earned XP for the level equals the
-      // level's full possible XP — see ActivityPlayerScreen for that
+      // level's full possible XP - see ActivityPlayerScreen for that
       // check. This action itself doesn't re-verify the score; it just
       // records the badge once told to.
       const { missionId, level, badgeId } = action;
@@ -237,10 +251,10 @@ function gameReducer(state, action) {
     }
 
     case 'COMPLETE_MISSION': {
-      // Dispatched when every level's badge has been earned — awards the
+      // Dispatched when every level's badge has been earned - awards the
       // mission-wide badge (e.g. "Hurricane Ready"), separate from any
       // single level's own badge. Uses the same badgesEarned array as
-      // COMPLETE_LEVEL — this badge just isn't tied to a specific level.
+      // COMPLETE_LEVEL - this badge just isn't tied to a specific level.
       const { missionId, badgeId } = action;
       const existingMissionProgress = state.missions[missionId] || createEmptyMissionProgress();
 
@@ -263,7 +277,7 @@ function gameReducer(state, action) {
     case 'COMPLETE_SIDE_MISSION': {
       // Unlike the main mission's badges (gated on a perfect score), a
       // side mission's badge is awarded simply for completing/submitting
-      // it — these are self-reported real-world tasks ("I built my kit",
+      // it - these are self-reported real-world tasks ("I built my kit",
       // "I know my nearest shelter"), not knowledge tests, so requiring
       // a specific accuracy threshold wouldn't mean the same thing here.
       const { sideMissionId, xpReward, badgeId } = action;
@@ -282,9 +296,9 @@ function gameReducer(state, action) {
 
     case 'RESET_PROGRESS': {
       // Used to prepare the app for a new evaluation participant. Resets
-      // parish, onboarding status, and all mission progress — so the next
+      // parish, onboarding status, and all mission progress - so the next
       // person goes through onboarding (including taking their own fresh
-      // pretest) from scratch — but deliberately carries the CURRENT
+      // pretest) from scratch - but deliberately carries the CURRENT
       // pretestScore/posttestScore forward rather than wiping them to
       // null. That gives the researcher a window to read and record the
       // previous participant's score before it's overwritten by the next
@@ -304,16 +318,16 @@ function gameReducer(state, action) {
 const GameContext = createContext(null);
 
 // A saved state is only usable if every stage in it has the current
-// activityXp shape — a save from before this shape changed (e.g. an old
+// activityXp shape - a save from before this shape changed (e.g. an old
 // completedActivityIds/xpEarned stage) would otherwise crash every helper
 // in this file the moment the app tries to read it. Rather than requiring
 // a manual storage clear whenever this shape changes again in the future,
-// an incompatible save is just treated as if there were no save at all —
+// an incompatible save is just treated as if there were no save at all -
 // the app starts fresh from initialState instead of crashing.
 //
 // MAINTENANCE: whenever a new top-level field gets added to initialState
 // that other code reads directly (not just optionally), add a check for
-// it here too — this has already been missed twice (sideMissions,
+// it here too - this has already been missed twice (sideMissions,
 // notificationPreferences), each time causing this exact category of
 // crash for anyone with an older save.
 function isSavedStateCompatible(savedState) {
@@ -333,8 +347,22 @@ function isSavedStateCompatible(savedState) {
 }
 
 export function GameProvider({ children }) {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [state, reducerDispatch] = useReducer(gameReducer, initialState);
   const [hasLoadedSavedState, setHasLoadedSavedState] = useState(false);
+
+  // Every screen dispatches through this. It passes each action straight
+  // to the reducer, and for RESET_PROGRESS it also wipes the Family
+  // Communication Plan. The plan lives under its own storage key (it holds
+  // other people's phone numbers, so it is kept out of the game state),
+  // which means the reducer can't clear it - a reducer can't do async
+  // storage work. Without this, the next evaluation participant on a
+  // shared test phone would see the previous participant's contacts.
+  const dispatch = useCallback((action) => {
+    if (action.type === 'RESET_PROGRESS') {
+      clearCommunicationPlan();
+    }
+    reducerDispatch(action);
+  }, []);
 
   // Load any previously saved progress once, on first mount.
   useEffect(() => {
@@ -346,11 +374,11 @@ export function GameProvider({ children }) {
           if (isSavedStateCompatible(parsedState)) {
             dispatch({ type: 'LOAD_STATE', savedState: parsedState });
           }
-          // An incompatible save is silently skipped — the app just
+          // An incompatible save is silently skipped - the app just
           // proceeds with initialState, same as a fresh install.
         }
       } catch {
-        // Corrupted or missing save — just start fresh from initialState.
+        // Corrupted or missing save - just start fresh from initialState.
       }
       setHasLoadedSavedState(true);
     }
@@ -359,18 +387,18 @@ export function GameProvider({ children }) {
   }, []);
 
   // Save to AsyncStorage every time state changes, but only AFTER the
-  // initial load above has finished — otherwise this would immediately
+  // initial load above has finished - otherwise this would immediately
   // overwrite a real saved game with the blank initialState on every startup.
   useEffect(() => {
     if (!hasLoadedSavedState) return;
 
     AsyncStorage.setItem(GAME_STATE_STORAGE_KEY, JSON.stringify(state)).catch(() => {
-      // Saving failed — not much the player can do about this in the
+      // Saving failed - not much the player can do about this in the
       // moment, so just let it silently retry on the next state change.
     });
   }, [state, hasLoadedSavedState]);
 
-  // Syncs total XP and badge count to Firestore for the leaderboard —
+  // Syncs total XP and badge count to Firestore for the leaderboard -
   // deliberately watches the DERIVED numbers (currentTotalXp,
   // currentBadgeCount) as dependencies, not the whole state object, so
   // this only fires when those specific values actually change (e.g.
@@ -402,7 +430,7 @@ export function useGameContext() {
 }
 
 // --- Derived helpers ---
-// These read from state but don't belong in the reducer itself — they're
+// These read from state but don't belong in the reducer itself - they're
 // just convenient calculations screens will want often (leaderboard,
 // badges screen, mission detail, tier display).
 
@@ -425,7 +453,7 @@ export function getTotalXp(state) {
   return total;
 }
 
-// Total XP earned across all side missions — used on the Home screen.
+// Total XP earned across all side missions - used on the Home screen.
 export function getSideMissionXp(state) {
   return Object.values(state.sideMissions).reduce(
     (sum, sideMissionProgress) => sum + sideMissionProgress.earnedXp,
@@ -433,7 +461,7 @@ export function getSideMissionXp(state) {
   );
 }
 
-// Same idea as getTotalXp above, but scoped to one mission — used by the
+// Same idea as getTotalXp above, but scoped to one mission - used by the
 // Missions list screen to show each mission's own XP rather than the
 // player's grand total.
 export function getMissionXp(state, missionId) {
@@ -449,7 +477,7 @@ export function getMissionXp(state, missionId) {
   return total;
 }
 
-// How much XP a specific stage has earned so far — used for the live XP
+// How much XP a specific stage has earned so far - used for the live XP
 // progress display while playing through a stage's activities.
 export function getStageEarnedXp(levelProgress, stageName) {
   const stageProgress = levelProgress.stages[stageName];
@@ -457,7 +485,7 @@ export function getStageEarnedXp(levelProgress, stageName) {
   return sumStageXp(stageProgress);
 }
 
-// The maximum XP a stage could possibly earn — the sum of every one of
+// The maximum XP a stage could possibly earn - the sum of every one of
 // its activities' full xpReward, regardless of what's actually been
 // earned so far. Used alongside getStageEarnedXp to show "X / Y XP".
 export function getStagePossibleXp(stageContent) {
@@ -472,7 +500,7 @@ export function getLevelEarnedXp(levelProgress) {
   }, 0);
 }
 
-// Total possible XP across every stage of one level — a level's badge is
+// Total possible XP across every stage of one level - a level's badge is
 // only awarded once getLevelEarnedXp equals this value (a perfect score),
 // per the "100% of the level's XP" requirement.
 export function getLevelPossibleXp(levelContent) {
@@ -490,7 +518,7 @@ export function getEarnedBadgeIds(state) {
   return [...mainMissionBadges, ...sideMissionBadges];
 }
 
-// Whether every activity in a stage has been ATTEMPTED at least once —
+// Whether every activity in a stage has been ATTEMPTED at least once -
 // this is about attempt coverage (used to decide whether the next stage
 // unlocks), not correctness. A player can attempt every activity, get some
 // wrong, and still move on to the next stage; only the level's BADGE
@@ -503,7 +531,7 @@ export function areAllStageActivitiesAttempted(stageProgress, stageContent) {
 }
 
 // Whether every stage in a level has had every one of its activities
-// attempted at least once — used to unlock the NEXT level. Deliberately
+// attempted at least once - used to unlock the NEXT level. Deliberately
 // separate from badge-earning (which requires a perfect score, see
 // getLevelEarnedXp/getLevelPossibleXp): a player can move on to the next
 // level having attempted everything in this one, even with some wrong
@@ -518,9 +546,9 @@ export function areAllLevelActivitiesAttempted(levelProgress, levelContent) {
 }
 
 // A mission counts as fully complete once every level defined in its
-// content has had its badge earned — takes the mission's content (not just
+// content has had its badge earned - takes the mission's content (not just
 // its id) since GameContext itself doesn't know how many levels a mission
-// has (content and progress are deliberately kept separate — see
+// has (content and progress are deliberately kept separate - see
 // missionContent/ files).
 export function hasCompletedMission(state, missionContent) {
   const missionProgress = state.missions[missionContent.missionId];
@@ -538,33 +566,85 @@ export function hasCompletedAllMissions(state, allMissionContents) {
   return allMissionContents.every((missionContent) => hasCompletedMission(state, missionContent));
 }
 
-// Player level/title based on total XP across all missions — thresholds
-// carried over from the original GameContext design.
-const LEVEL_THRESHOLDS = [
-  { minXp: 0, level: 1, name: 'Newcomer' },
-  { minXp: 100, level: 2, name: 'Preparedness Cadet' },
-  { minXp: 250, level: 3, name: 'Community Guardian' },
-  { minXp: 500, level: 4, name: 'Crisis Responder' },
-  { minXp: 800, level: 5, name: 'Island Defender' },
+// Player ranks, based on total XP across all missions and side missions.
+//
+// Each rank starts at a share of ALL the XP the app currently offers:
+// every activity in every mission in ALL_MISSIONS, plus every side
+// mission. Adding a new hazard mission raises the total, and the rank
+// thresholds move up with it automatically - nothing here needs editing.
+//
+// With Hurricane Ready and the three side missions (4,700 XP in total) the
+// thresholds work out as 0 / 350 / 950 / 1,900 / 3,300 XP.
+//
+// Note: because thresholds grow when a mission is added, a player can drop
+// a rank after an app update without losing any XP.
+const RANK_DEFINITIONS = [
+  { shareOfMaxXp: 0, level: 1, name: 'Newcomer', emoji: '🌱' },
+  { shareOfMaxXp: 0.07, level: 2, name: 'Preparedness Cadet', emoji: '🎒' },
+  { shareOfMaxXp: 0.2, level: 3, name: 'Community Guardian', emoji: '🏘️' },
+  { shareOfMaxXp: 0.4, level: 4, name: 'Crisis Responder', emoji: '🚑' },
+  { shareOfMaxXp: 0.7, level: 5, name: 'Island Defender', emoji: '🛡️' },
 ];
 
-export function getPlayerLevel(state) {
-  const totalXp = getTotalXp(state);
-  // Thresholds are ordered lowest to highest — find the last one the
-  // player's XP still qualifies for.
-  let currentLevel = LEVEL_THRESHOLDS[0];
+// Every XP point the app currently offers: all activities in all missions,
+// plus all side missions.
+export function getMaxAvailableXp() {
+  let total = 0;
+  ALL_MISSIONS.forEach((mission) => {
+    Object.values(mission.levels).forEach((level) => {
+      Object.values(level.stages).forEach((stage) => {
+        stage.activities.forEach((activity) => {
+          total += activity.xpReward || 0;
+        });
+      });
+    });
+  });
+  getAllSideMissions().forEach((sideMission) => {
+    total += sideMission.xpReward || 0;
+  });
+  return total;
+}
+
+// Worked out once when the app loads (mission content doesn't change while
+// the app is running). Rounded to the nearest 50 XP so the numbers shown on
+// the Leaderboard are tidy. Exported so the Leaderboard can count how many
+// players hold each rank.
+const MAX_AVAILABLE_XP = getMaxAvailableXp();
+export const LEVEL_THRESHOLDS = RANK_DEFINITIONS.map((rank) => ({
+  ...rank,
+  minXp: Math.round((MAX_AVAILABLE_XP * rank.shareOfMaxXp) / 50) * 50,
+}));
+
+// The rank for any XP total - used for the current player and for other
+// players on the Leaderboard (whose XP comes from Firestore).
+export function getRankForXp(totalXp) {
+  // Thresholds are ordered lowest to highest - find the last one this XP
+  // still qualifies for.
+  let currentRank = LEVEL_THRESHOLDS[0];
   for (const threshold of LEVEL_THRESHOLDS) {
     if (totalXp >= threshold.minXp) {
-      currentLevel = threshold;
+      currentRank = threshold;
     }
   }
-  return { level: currentLevel.level, name: currentLevel.name };
+  return currentRank;
+}
+
+// The next rank up and how much XP is still needed, or null at the top.
+export function getNextRank(totalXp) {
+  const nextRank = LEVEL_THRESHOLDS.find((threshold) => threshold.minXp > totalXp);
+  if (!nextRank) return null;
+  return { ...nextRank, xpNeeded: nextRank.minXp - totalXp };
+}
+
+export function getPlayerLevel(state) {
+  const rank = getRankForXp(getTotalXp(state));
+  return { level: rank.level, name: rank.name, emoji: rank.emoji };
 }
 
 // --- Readiness Score ---
 // This is deliberately a SEPARATE metric from XP (see getTotalXp above),
 // though now that XP itself reflects correctness (not just completion),
-// the two are more closely related than before — which is a good thing:
+// the two are more closely related than before - which is a good thing:
 // a player who clicks through everything but gets it all wrong now earns
 // close to 0 XP AND a low Readiness Score, rather than looking "done" on
 // paper while having learned nothing.
@@ -588,10 +668,10 @@ const STAGE_WEIGHTS = {
 // just personal knowledge. These stay fixed at these values even while
 // only Level 1 exists in content, so the Readiness Score honestly reflects
 // "how ready is this player for a REAL hurricane" rather than "how much of
-// what's been built so far has this player finished" — those are
+// what's been built so far has this player finished" - those are
 // different questions, and only the first one matters for the research
 // write-up. In practice this means the maximum possible Readiness Score
-// right now is 10% (Level 1's full weight) until Levels 2-6 are built —
+// right now is 10% (Level 1's full weight) until Levels 2-6 are built -
 // that's expected, not a bug.
 const LEVEL_WEIGHTS = {
   1: 0.1,
@@ -602,7 +682,7 @@ const LEVEL_WEIGHTS = {
   6: 0.15,
 };
 
-// Fraction of a stage's possible XP that's actually been earned — this now
+// Fraction of a stage's possible XP that's actually been earned - this now
 // captures correctness, not just attempt coverage, since XP itself is
 // correctness-weighted (see components/activities/).
 function getStageXpFraction(stageProgress, stageContent) {
@@ -635,7 +715,7 @@ export function getMissionReadinessScore(state, missionContent) {
     const levelContent = missionContent.levels[levelNumberKey];
     const levelProgress = missionProgress.levels[levelNumberKey];
     // Levels with no content yet (not built) or no progress yet (not
-    // started) simply contribute 0 — see the comment on LEVEL_WEIGHTS
+    // started) simply contribute 0 - see the comment on LEVEL_WEIGHTS
     // above for why that's intentional.
     if (!levelContent || !levelProgress) return;
     const levelFraction = getLevelReadinessFraction(levelProgress, levelContent);
@@ -645,7 +725,7 @@ export function getMissionReadinessScore(state, missionContent) {
   return Math.round(weightedSum * 100);
 }
 
-// Overall readiness across every mission that's been built so far — the
+// Overall readiness across every mission that's been built so far - the
 // average of each mission's own Readiness Score above. Takes the full
 // mission content list (not just ids) since each mission's score
 // calculation needs its own content definition.
@@ -661,7 +741,7 @@ export function getReadinessPercentage(state, allMissionContents) {
 }
 
 // TODO: tier/unlock system across missions (e.g. "complete Hurricane Ready
-// before Volcanic Hazard Ready unlocks") — revisit once a second mission
+// before Volcanic Hazard Ready unlocks") - revisit once a second mission
 // actually exists (Phase 3) and it's clear what order they should unlock
-// in — no point guessing tier assignments for missions that aren't built
+// in - no point guessing tier assignments for missions that aren't built
 // yet.

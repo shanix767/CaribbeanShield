@@ -45,6 +45,10 @@ export default function ChecklistActivity({ activity, onComplete }) {
   }).length;
   const earnedXp = Math.round(activity.xpReward * (numberOfItemsJudgedCorrectly / items.length));
 
+  // Side missions ("tick what you actually have ready") are self-reports,
+  // not right/wrong questions, so their feedback is worded differently.
+  const isSelfReport = !!activity.selfReport;
+
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -56,11 +60,28 @@ export default function ChecklistActivity({ activity, onComplete }) {
           // Once submitted, show the real answer key regardless of what
           // the player picked, so they leave the activity knowing the
           // right answer, not just whether they were right.
+          // After submitting, each item shows one of four results, with a
+          // short label so colour is never the only cue:
+          //   picked and correct  -> green
+          //   correct but missed  -> white with a dashed green border
+          //   picked but wrong    -> pale pink with a red border
+          //   not picked, not correct -> unchanged
           let itemStyle = styles.item;
-          if (hasSubmitted && item.isCorrect) {
+          let resultLabel = null;
+          if (hasSubmitted && item.isCorrect && isSelected) {
             itemStyle = styles.itemCorrectAnswer;
+            resultLabel = isSelfReport
+              ? null
+              : { text: '✓ Correct', style: styles.resultCorrect };
+          } else if (hasSubmitted && item.isCorrect) {
+            itemStyle = styles.itemMissed;
+            resultLabel = {
+              text: isSelfReport ? 'Not ready yet' : 'Missed - this was a correct answer',
+              style: styles.resultCorrect,
+            };
           } else if (hasSubmitted && isSelected && !item.isCorrect) {
             itemStyle = styles.itemWronglySelected;
+            resultLabel = { text: '✗ Not a correct answer', style: styles.resultWrong };
           } else if (isSelected) {
             itemStyle = styles.itemSelected;
           }
@@ -73,7 +94,10 @@ export default function ChecklistActivity({ activity, onComplete }) {
               disabled={hasSubmitted}
             >
               <Text style={styles.checkbox}>{isSelected ? '☑' : '☐'}</Text>
-              <Text style={styles.itemLabel}>{item.label}</Text>
+              <View style={styles.itemTextColumn}>
+                <Text style={styles.itemLabel}>{item.label}</Text>
+                {resultLabel && <Text style={resultLabel.style}>{resultLabel.text}</Text>}
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -81,9 +105,15 @@ export default function ChecklistActivity({ activity, onComplete }) {
         {hasSubmitted && (
           <View style={styles.feedbackBox}>
             <Text style={styles.feedbackText}>
-              You correctly identified {numberCorrectlySelected} of {correctItemIds.length} hazards
+              {isSelfReport
+                ? `You have ${numberCorrectlySelected} of ${correctItemIds.length} ready`
+                : `You picked ${numberCorrectlySelected} of the ${correctItemIds.length} correct ${
+                    correctItemIds.length === 1 ? 'answer' : 'answers'
+                  }`}
               {numberIncorrectlySelected > 0
-                ? `, and selected ${numberIncorrectlySelected} item(s) that weren't hazards.`
+                ? `, plus ${numberIncorrectlySelected} ${
+                    numberIncorrectlySelected === 1 ? 'item that was' : 'items that were'
+                  } not correct.`
                 : '.'}
             </Text>
             <Text style={styles.xpEarnedText}>+{earnedXp} XP</Text>
@@ -147,15 +177,43 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
   },
+  // Pale pink with a red border and dark text - solid red made the dark
+  // text unreadable.
   itemWronglySelected: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.backgroundRed,
-    borderWidth: 1,
+    backgroundColor: COLORS.feedbackIncorrect,
+    borderWidth: 2,
     borderColor: COLORS.textRed,
     borderRadius: 8,
     padding: 14,
     marginBottom: 8,
+  },
+  itemMissed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundWhite,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: COLORS.backgroundGreenD,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+  },
+  itemTextColumn: {
+    flex: 1,
+  },
+  resultCorrect: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.textGreen,
+    marginTop: 4,
+  },
+  resultWrong: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.textRed,
+    marginTop: 4,
   },
   checkbox: {
     fontSize: 20,
@@ -191,7 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

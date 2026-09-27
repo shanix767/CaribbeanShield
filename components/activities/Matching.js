@@ -6,9 +6,19 @@
 // targets, easy to mis-drop) for no real benefit here. The right-hand
 // column is shuffled once on mount so the pairs aren't trivially in the
 // same order as the left column.
+//
+// Scoring: the player keeps trying until every pair is matched, but each
+// wrong attempt is counted and reduces the XP awarded, so matching is
+// accuracy-weighted like every other activity type:
+//
+//   earnedXp = round(xpReward * pairs / (pairs + wrongAttempts))
+//
+// No mistakes earns full XP; e.g. 5 pairs with 2 wrong attempts on a
+// 20 XP activity earns round(20 * 5/7) = 14 XP. Because COMPLETE_ACTIVITY
+// overwrites the stored XP, the player can replay the stage to improve it.
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -37,17 +47,27 @@ export default function Matching({ activity, onComplete }) {
   const [selectedPairId, setSelectedPairId] = useState(null);
   const [matchedPairIds, setMatchedPairIds] = useState([]);
   const [wrongAttemptPairId, setWrongAttemptPairId] = useState(null);
+  const [wrongAttemptCount, setWrongAttemptCount] = useState(0);
 
   const allPairsMatched = matchedPairIds.length === pairs.length;
 
+  // Accuracy-weighted XP - see the scoring note at the top of the file.
+  const earnedXp = Math.round(
+    activity.xpReward * (pairs.length / (pairs.length + wrongAttemptCount))
+  );
+
   function handleSelectLeftItem(pairId) {
     if (matchedPairIds.includes(pairId)) return;
+    if (wrongAttemptPairId !== null) return; // wait for the red flash to clear
     setSelectedPairId(pairId);
   }
 
   function handleSelectRightItem(pairId) {
     if (matchedPairIds.includes(pairId)) return;
     if (selectedPairId === null) return; // must pick a left item first
+    // Ignore taps during the red flash, so one mistake can't be counted
+    // twice by tapping again before the selection resets.
+    if (wrongAttemptPairId !== null) return;
 
     const isCorrectMatch = selectedPairId === pairId;
 
@@ -55,8 +75,9 @@ export default function Matching({ activity, onComplete }) {
       setMatchedPairIds([...matchedPairIds, pairId]);
       setSelectedPairId(null);
     } else {
-      // Briefly flash red on the wrong right-side item, then clear the
-      // selection so the player can try again.
+      // Count the mistake, briefly flash red on the wrong right-side item,
+      // then clear the selection so the player can try again.
+      setWrongAttemptCount((count) => count + 1);
       setWrongAttemptPairId(pairId);
       setTimeout(() => {
         setWrongAttemptPairId(null);
@@ -67,6 +88,7 @@ export default function Matching({ activity, onComplete }) {
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
       <Text style={styles.prompt}>{prompt}</Text>
 
       <View style={styles.columnsRow}>
@@ -116,9 +138,24 @@ export default function Matching({ activity, onComplete }) {
       </View>
 
       {allPairsMatched && (
-        <TouchableOpacity style={styles.continueButton} onPress={() => onComplete(activity.xpReward)}>
-          <Text style={styles.continueButtonText}>Continue (+{activity.xpReward} XP)</Text>
-        </TouchableOpacity>
+        <Text style={styles.resultText}>
+          {wrongAttemptCount === 0
+            ? 'All pairs matched with no mistakes!'
+            : `All pairs matched with ${wrongAttemptCount} ${
+                wrongAttemptCount === 1 ? 'mistake' : 'mistakes'
+              }.`}
+        </Text>
+      )}
+      </ScrollView>
+
+      {allPairsMatched && (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.continueButton} onPress={() => onComplete(earnedXp)}>
+            <Text style={styles.continueButtonText}>
+              Continue (+{earnedXp}/{activity.xpReward} XP)
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -128,7 +165,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
+  },
+  // Content scrolls; the action button stays pinned below it, so it can
+  // never be pushed off the bottom of the screen by long text.
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 24,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   prompt: {
     fontSize: 16,
@@ -174,7 +223,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   itemWrong: {
-    backgroundColor: COLORS.backgroundRed,
+    // feedbackIncorrect comes from the new palette; falls back to the old
+    // red if colors.js hasn't been swapped yet.
+    backgroundColor: COLORS.feedbackIncorrect || COLORS.backgroundRed,
     borderWidth: 1,
     borderColor: COLORS.textRed,
     borderRadius: 8,
@@ -188,15 +239,21 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
     textAlign: 'center',
   },
+  resultText: {
+    fontSize: 14,
+    color: COLORS.textDark,
+    textAlign: 'center',
+    marginTop: 16,
+  },
   continueButton: {
     backgroundColor: COLORS.backgroundGreenD,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 12,
     borderRadius: 8,
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

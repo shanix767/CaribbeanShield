@@ -13,7 +13,7 @@
 // the point there is exposure and feedback, not screening.
 
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -88,6 +88,7 @@ export default function Quiz({ activity, onComplete }) {
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
       <View style={styles.headerRow}>
         <Text style={styles.progressLabel}>
           Question {currentQuestionIndex + 1} of {questions.length}
@@ -130,13 +131,15 @@ export default function Quiz({ activity, onComplete }) {
       {hasAnswered && (
         <View style={styles.feedbackBox}>
           <Text style={styles.feedbackHeading}>
-            {ranOutOfTime ? '⏱️ Time\u2019s up!' : wasCorrect ? '✅ Correct!' : '❌ Not quite'}
+            {ranOutOfTime ? "⏱️ Time's up!" : wasCorrect ? "✅ Correct!" : "❌ Not quite"}
           </Text>
           <Text style={styles.feedbackText}>{currentQuestion.explanation}</Text>
         </View>
       )}
+      </ScrollView>
 
       {hasAnswered && (
+        <View style={styles.footer}>
         <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
           <Text style={styles.nextButtonText}>
             {isLastQuestion
@@ -144,6 +147,7 @@ export default function Quiz({ activity, onComplete }) {
               : 'Next Question'}
           </Text>
         </TouchableOpacity>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -153,7 +157,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
+  },
+  // Content scrolls; the action button stays pinned below it, so it can
+  // never be pushed off the bottom of the screen by long text.
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 24,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -232,7 +248,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   nextButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -1,40 +1,40 @@
 // screens/BadgePage.js
 //
-// Shows every badge that exists across every mission's content — level
-// badges and each mission's own mission-wide badge — earned ones in full
+// Shows every badge that exists across every mission's content - level
+// badges and each mission's own mission-wide badge - earned ones in full
 // colour, unearned ones greyed out via reduced opacity (React Native has
 // no CSS grayscale filter for images, so opacity is the practical
 // stand-in). Reachable from the just-earned popup on MissionDetailScreen,
 // from the "Badges earned" banner there, and from a link on the Missions
 // list.
 
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, StyleSheet, Image } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useGameContext, getEarnedBadgeIds } from '../context/GameContext';
 import { getAllBadges } from '../missionContent/badges';
 import { COLORS } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 export default function BadgePageScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
+  // The same screen is used as the Badges tab and as a pushed page.
+  const isTab = route.name === 'Badges';
   const { state } = useGameContext();
   const allBadges = getAllBadges();
   const earnedBadgeIds = getEarnedBadgeIds(state);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      {navigation.canGoBack() && (
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backLink}>← Back</Text>
-        </TouchableOpacity>
-      )}
+    <View style={styles.screen}>
+      {/* Opened as a tab there's nothing to go back to; opened from Missions
+          or a badge popup, it shows a back link. */}
+      <ScreenHeader
+        title="Badges"
+        subtitle={`${earnedBadgeIds.length} of ${allBadges.length} earned`}
+        onBack={isTab ? undefined : () => navigation.goBack()}
+      />
 
-      <Text style={styles.title}>Badges</Text>
-      <Text style={styles.subtitle}>
-        {earnedBadgeIds.length} of {allBadges.length} earned
-      </Text>
-
-      <ScrollView contentContainerStyle={styles.grid}>
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.grid}>
         {allBadges.map((badge) => {
           const isEarned = earnedBadgeIds.includes(badge.badgeId);
 
@@ -66,15 +66,17 @@ export default function BadgePageScreen() {
           );
         })}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
-    padding: 20,
+  },
+  scrollArea: {
+    flex: 1,
   },
   backLink: {
     color: COLORS.textGreen,
@@ -95,6 +97,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    padding: 20,
+    paddingBottom: 32,
   },
   badgeCard: {
     width: '48%',

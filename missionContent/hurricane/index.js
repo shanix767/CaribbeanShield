@@ -17,6 +17,8 @@ export const HURRICANE_MISSION_CONTENT = {
   title: 'Hurricane Ready',
   description: 'Learn, plan, and prepare for hurricane season across six levels of increasing readiness.',
   iconPlaceholder: '🌀',
+  // Shown above this mission's own readiness bar on its detail screen.
+  readinessLabel: 'Hurricane Readiness',
   // Awarded once every level's own badge has been earned - separate from
   // any single level's badge. See getAllBadges/hasCompletedMission.
   missionBadge: {

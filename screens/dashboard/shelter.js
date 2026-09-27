@@ -4,11 +4,12 @@
 // services/shelters.js, and an actual road route (via OSRM) to whichever
 // one is currently selected. Shows up to 5 nearby shelters rather than just
 // the single closest one, since the nearest shelter could be full, closed,
-// or have a blocked access road during a real event — having an easy way to
+// or have a blocked access road during a real event - having an easy way to
 // see and switch to an alternative matters here.
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
   Text,
@@ -24,10 +25,13 @@ import {
   fetchRoadRoute,
 } from '../../services/locationApi';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const SHELTER_COUNT = 5;
 
 export default function ShelterScreen() {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const navigationRoute = useRoute();
   const focusShelterName = navigationRoute.params?.focusShelterName;
   const focusShelterCommunity = navigationRoute.params?.focusShelterCommunity;
@@ -42,7 +46,7 @@ export default function ShelterScreen() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   // Loads the user's position and the list of nearby shelters. Only runs on
-  // initial load / manual refresh — selecting a different shelter from the
+  // initial load / manual refresh - selecting a different shelter from the
   // list does NOT re-run this, just re-fetches the route (see below).
   const loadUserAndShelters = useCallback(async () => {
     setIsLoading(true);
@@ -60,7 +64,7 @@ export default function ShelterScreen() {
       setNearbyShelters(shelters);
 
       // If we arrived here from a specific shelter (e.g. tapped in the
-      // Resource Hub), select that one instead of defaulting to nearest —
+      // Resource Hub), select that one instead of defaulting to nearest -
       // falls back to nearest if it's somehow not in this computed list
       // (e.g. two separate GPS reads placed it just outside the top 5).
       const focusedIndex = focusShelterName
@@ -97,7 +101,7 @@ export default function ShelterScreen() {
       );
       setRoute(roadRoute);
     } catch {
-      // Road routing failing shouldn't block showing the map — fall back to
+      // Road routing failing shouldn't block showing the map - fall back to
       // no drawn route, straight-line distance still shown in the info card.
       setRoute(null);
     }
@@ -115,20 +119,34 @@ export default function ShelterScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color={COLORS.textGreen} />
-        <Text style={styles.loadingText}>Finding nearby shelters...</Text>
+      <View style={styles.screenContainer}>
+      <ScreenHeader
+        title="Shelter Map"
+        subtitle="Your nearest shelters and the route there"
+        onBack={() => navigation.goBack()}
+      />
+        <View style={styles.centeredContainer}>
+          <ActivityIndicator size="large" color={COLORS.textGreen} />
+          <Text style={styles.loadingText}>Finding nearby shelters...</Text>
+        </View>
       </View>
     );
   }
 
   if (errorMessage) {
     return (
-      <View style={styles.centeredContainer}>
-        <Text style={styles.errorText}>{errorMessage}</Text>
-        <TouchableOpacity style={styles.actionButton} onPress={loadUserAndShelters}>
-          <Text style={styles.actionButtonText}>Try Again</Text>
-        </TouchableOpacity>
+      <View style={styles.screenContainer}>
+      <ScreenHeader
+        title="Shelter Map"
+        subtitle="Your nearest shelters and the route there"
+        onBack={() => navigation.goBack()}
+      />
+        <View style={styles.centeredContainer}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={loadUserAndShelters}>
+            <Text style={styles.actionButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -137,6 +155,11 @@ export default function ShelterScreen() {
 
   return (
     <View style={styles.screenContainer}>
+      <ScreenHeader
+        title="Shelter Map"
+        subtitle="Your nearest shelters and the route there"
+        onBack={() => navigation.goBack()}
+      />
       <MapView
         provider={PROVIDER_GOOGLE}
         style={styles.map}
@@ -158,7 +181,7 @@ export default function ShelterScreen() {
             key={`${index}-${selectedIndex === index}`}
             coordinate={entry.shelter}
             title={entry.shelter.name}
-            description={`${entry.shelter.community} — ${entry.shelter.type}`}
+            description={`${entry.shelter.community} - ${entry.shelter.type}`}
             pinColor={index === selectedIndex ? COLORS.marker : COLORS.backgroundGreenD}
             onPress={() => setSelectedIndex(index)}
           />
@@ -210,10 +233,10 @@ export default function ShelterScreen() {
         })}
       </ScrollView>
 
-      <View style={styles.infoCard}>
+      <View style={[styles.infoCard, { paddingBottom: 16 + insets.bottom }]}>
         <Text style={styles.shelterName}>{selected.shelter.name}</Text>
         <Text style={styles.shelterDetail}>
-          {selected.shelter.community} — {selected.shelter.type}
+          {selected.shelter.community} - {selected.shelter.type}
         </Text>
 
         <View style={styles.modeToggleRow}>
@@ -268,7 +291,7 @@ export default function ShelterScreen() {
               ~{selected.straightLineDistanceKm} km straight-line distance
             </Text>
             <Text style={styles.offlineNote}>
-              Road route and map imagery need an internet connection — if
+              Road route and map imagery need an internet connection - if
               you're offline, this shelter's location and straight-line
               distance above are still accurate.
             </Text>
@@ -286,6 +309,7 @@ export default function ShelterScreen() {
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
+    backgroundColor: COLORS.backgroundCream,
   },
   map: {
     flex: 1,

@@ -3,7 +3,7 @@
 // The dashboard: current mission progress, active hazard alerts, a
 // leaderboard snippet, and side missions. Alert detection reuses the
 // exact same pattern as HazardWatchScreen (storms.length > 0, etc.)
-// rather than inventing separate severity logic — this is a simple
+// rather than inventing separate severity logic - this is a simple
 // "what's the current state" summary, distinct from App.js's alert Modal,
 // which is specifically about detecting CHANGES since last check for a
 // notification. Home just shows what's true right now.
@@ -11,7 +11,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Image } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useGameContext,
   getPlayerLevel,
@@ -29,6 +28,7 @@ import { fetchWeeklyVolcanoActivity } from '../services/volcanoApi';
 import { fetchRecentFloodAlerts } from '../services/floodApi';
 import { TEST_MODE } from '../testMode';
 import { COLORS } from '../theme/colors';
+import ScreenHeader, { HeaderButton } from '../components/ScreenHeader';
 
 const HURRICANE_MISSION_ID = 'hurricaneReady';
 
@@ -39,7 +39,7 @@ function getGreeting() {
   return 'Good evening';
 }
 
-// First level whose badge isn't yet earned — a simple proxy for "what the
+// First level whose badge isn't yet earned - a simple proxy for "what the
 // player is currently working on," not a full re-implementation of
 // MissionDetailScreen's unlock-percentage logic (that lives there because
 // it needs to be precise for gating; here it's just a dashboard summary).
@@ -79,7 +79,7 @@ export default function HomeScreen() {
 
   const sideMissions = getAllSideMissions();
 
-  // Badge popup — same pattern as MissionDetailScreen, for side missions
+  // Badge popup - same pattern as MissionDetailScreen, for side missions
   // completed via SideMissionPlayerScreen navigating back here.
   useEffect(() => {
     if (route.params?.justEarnedBadges) {
@@ -107,7 +107,7 @@ export default function HomeScreen() {
       ? []
       : hurricaneResult.status === 'fulfilled' ? hurricaneResult.value.storms : [];
     // Hurricane has no on/off preference. The other three respect
-    // notificationPreferences, same as App.js's check — if a category is
+    // notificationPreferences, same as App.js's check - if a category is
     // turned off in settings, Home's banner shouldn't surface it either.
     const earthquakes = !state.notificationPreferences.earthquakeAlerts
       ? []
@@ -134,7 +134,7 @@ export default function HomeScreen() {
       const storm = storms[0];
       setAlertSummary({
         icon: '🌀',
-        title: `${storm.classificationLabel} ${storm.name}${storm.category ? ` — Category ${storm.category}` : ''}`,
+        title: `${storm.classificationLabel} ${storm.name}${storm.category ? ` - Category ${storm.category}` : ''}`,
         detail: storm.movement ? `Moving ${storm.movement}` : 'Tap for details',
       });
     } else if (hasActiveEarthquake) {
@@ -159,25 +159,18 @@ export default function HomeScreen() {
   const isCurrentUserInTop = currentUserRank !== -1;
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title={`${getGreeting()}${state.userName ? `, ${state.userName}` : ''}`}
+        right={
+          <HeaderButton
+            label="⚙️"
+            accessibilityLabel="Settings"
+            onPress={() => navigation.navigate('SettingsMenu')}
+          />
+        }
+      />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerRow}>
-          <Text style={styles.greeting}>
-            {getGreeting()}
-            {state.userName ? `,\n${state.userName}` : ''}
-          </Text>
-          <View style={styles.headerRightGroup}>
-            <View style={styles.appBadge}>
-              <Text style={styles.appBadgeText}>🌀 CS</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => navigation.navigate('SettingsMenu')}
-            >
-              <Text style={styles.settingsIcon}>⚙️</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         <View style={styles.missionCard}>
           <View style={styles.missionCardHeader}>
@@ -218,7 +211,7 @@ export default function HomeScreen() {
             </>
           ) : (
             <Text style={styles.calmText}>
-              {alertSummary === null ? '🟢 No active alerts — all clear' : 'Checking for alerts...'}
+              {alertSummary === null ? '🟢 No active alerts - all clear' : 'Checking for alerts...'}
             </Text>
           )}
         </TouchableOpacity>
@@ -259,7 +252,13 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={sideMission.id}
               style={styles.sideMissionCard}
-              onPress={() => navigation.navigate('SideMissionPlayer', { sideMissionId: sideMission.id })}
+              // Checklist side missions play in SideMissionPlayer; one with its
+              // own screen (the Family Communication Plan) opens that instead.
+              onPress={() =>
+                navigation.navigate(sideMission.screen || 'SideMissionPlayer', {
+                  sideMissionId: sideMission.id,
+                })
+              }
             >
               <Text style={styles.sideMissionIcon}>{sideMission.icon}</Text>
               <View style={styles.sideMissionInfo}>
@@ -313,7 +312,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -346,18 +345,6 @@ const styles = StyleSheet.create({
   },
   settingsIcon: {
     fontSize: 22,
-  },
-  appBadge: {
-    borderWidth: 1,
-    borderColor: COLORS.borderGreen,
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  appBadgeText: {
-    color: COLORS.textGreen,
-    fontWeight: 'bold',
-    fontSize: 13,
   },
   missionCard: {
     backgroundColor: COLORS.backgroundWhite,
@@ -572,7 +559,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   popupPrimaryButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 15,
     fontWeight: 'bold',
   },

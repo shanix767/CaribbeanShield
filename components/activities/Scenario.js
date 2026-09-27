@@ -5,7 +5,7 @@
 // Not timed in this version (a real countdown is a later enhancement) -
 // the point right now is the decision-then-consequence structure itself.
 
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { COLORS } from '../../theme/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +24,7 @@ export default function Scenario({ activity, onComplete }) {
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
       <View style={styles.situationBox}>
         <Text style={styles.situationText}>{situationText}</Text>
       </View>
@@ -45,7 +46,12 @@ export default function Scenario({ activity, onComplete }) {
             {selectedChoice.isBestChoice ? '✅ Good decision' : '⚠️ Not the safest choice'}
           </Text>
           <Text style={styles.feedbackText}>{selectedChoice.consequenceText}</Text>
+        </View>
+      )}
+      </ScrollView>
 
+      {selectedChoice && (
+        <View style={styles.footer}>
           <TouchableOpacity style={styles.continueButton} onPress={() => onComplete(earnedXp)}>
             <Text style={styles.continueButtonText}>Continue (+{earnedXp} XP)</Text>
           </TouchableOpacity>
@@ -59,7 +65,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
+  },
+  // Content scrolls; the action button stays pinned below it, so it can
+  // never be pushed off the bottom of the screen by long text.
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 24,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   situationBox: {
     backgroundColor: COLORS.backgroundRed,
@@ -109,7 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

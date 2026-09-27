@@ -8,7 +8,7 @@
 //      OSRM's free public routing server
 //
 // IMPORTANT LIMITATION: OSRM's public demo server (router.project-osrm.org)
-// is meant for light/testing use, not production traffic — there's no
+// is meant for light/testing use, not production traffic - there's no
 // uptime guarantee and it can be slow or rate-limited under heavy use. Fine
 // for a coursework app, but if this app grows real users, a paid routing
 // provider (Mapbox, Google Directions) would be the more reliable choice.
@@ -17,6 +17,10 @@ import * as Location from "expo-location";
 import { SHELTERS } from "./shelters";
 
 const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1";
+
+// Average adult walking pace, used for walking times (see fetchRoadRoute).
+// Dominica's hills make 5 km/h, if anything, slightly optimistic.
+const WALKING_SPEED_KMH = 5;
 
 function haversineDistanceKm(lat1, lon1, lat2, lon2) {
   const EARTH_RADIUS_KM = 6371;
@@ -52,12 +56,12 @@ async function fetchWithTimeout(url, timeoutMs = 10000) {
   }
 }
 
-// Asks for location permission only — doesn't fetch an actual GPS fix.
+// Asks for location permission only - doesn't fetch an actual GPS fix.
 // Used during onboarding, where the point is just obtaining permission
 // ahead of time; getCurrentUserLocation() (below) handles the real fetch
 // later, when the Shelter tab actually needs coordinates. Calling this
 // when permission's already granted just returns true immediately rather
-// than prompting a second time — expo-location's request is idempotent.
+// than prompting a second time - expo-location's request is idempotent.
 export async function requestLocationPermission() {
   const { status } = await Location.requestForegroundPermissionsAsync();
   return status === "granted";
@@ -104,7 +108,7 @@ export function findNearestShelters(userLatitude, userLongitude, count = 5) {
   return withDistances.slice(0, count);
 }
 
-// Finds just the closest shelter — thin wrapper around findNearestShelters
+// Finds just the closest shelter - thin wrapper around findNearestShelters
 // for callers that only need the single nearest one.
 export function findNearestShelter(userLatitude, userLongitude) {
   const [nearest] = findNearestShelters(userLatitude, userLongitude, 1);
@@ -115,10 +119,12 @@ export function findNearestShelter(userLatitude, userLongitude) {
 // route's coordinates (for drawing on the map) plus real distance and
 // duration for the given travel mode.
 //
-// travelMode: "driving" (default) or "walking". OSRM's public demo server
-// supports both (plus cycling), each as a genuinely different routed path —
-// walking can use footpaths/shortcuts a car route wouldn't, and its duration
-// assumes walking pace, not driving speed.
+// travelMode: "driving" (default) or "walking". OSRM's free public demo
+// server only has the car profile - a "walking" request quietly returns the
+// car route and a car travel time (e.g. "0.4 km, ~1 min"). So for walking,
+// the time is worked out here from the distance at an average walking pace
+// instead. The line drawn on the map is still the road route, which is a
+// reasonable walking path in most of Dominica's towns and villages.
 export async function fetchRoadRoute(fromLat, fromLon, toLat, toLon, travelMode = "driving") {
   // OSRM wants "longitude,latitude" order, opposite of how most APIs do it.
   const requestUrl =
@@ -139,16 +145,22 @@ export async function fetchRoadRoute(fromLat, fromLon, toLat, toLon, travelMode 
 
   const route = routeData.routes[0];
 
-  // GeoJSON coordinates come as [lon, lat] pairs — react-native-maps wants
+  // GeoJSON coordinates come as [lon, lat] pairs - react-native-maps wants
   // {latitude, longitude} objects, so flip them here.
   const routeCoordinates = route.geometry.coordinates.map(([lon, lat]) => ({
     latitude: lat,
     longitude: lon,
   }));
 
+  const distanceKm = route.distance / 1000;
+  const durationMinutes =
+    travelMode === "walking"
+      ? Math.max(1, Math.round((distanceKm / WALKING_SPEED_KMH) * 60))
+      : Math.max(1, Math.round(route.duration / 60));
+
   return {
     coordinates: routeCoordinates,
-    distanceKm: Math.round((route.distance / 1000) * 10) / 10,
-    durationMinutes: Math.round(route.duration / 60),
+    distanceKm: Math.round(distanceKm * 10) / 10,
+    durationMinutes,
   };
 }

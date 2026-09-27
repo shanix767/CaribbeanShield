@@ -14,16 +14,11 @@
 
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   useGameContext,
-  STAGE_ORDER,
   getStageEarnedXp,
   getStagePossibleXp,
-  getLevelEarnedXp,
-  getLevelPossibleXp,
-  hasCompletedMission,
 } from '../../context/GameContext';
 import { MISSION_CONTENT_BY_ID } from '../../missionContent';
 import Lesson from '../../components/activities/Lesson';
@@ -32,6 +27,7 @@ import Checklist from '../../components/activities/Checklist';
 import Matching from '../../components/activities/Matching';
 import Scenario from '../../components/activities/Scenario';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const STAGE_DISPLAY_LABELS = {
   learn: 'Learn',
@@ -55,7 +51,6 @@ export default function ActivityPlayerScreen() {
   const activities = stageContent.activities;
   const currentActivity = activities[currentActivityIndex];
 
-  const isLastStage = stage === STAGE_ORDER[STAGE_ORDER.length - 1];
   const isLastActivityInStage = currentActivityIndex === activities.length - 1;
 
   // Live XP progress for this stage - reads straight from state, so it
@@ -83,88 +78,23 @@ export default function ActivityPlayerScreen() {
       return;
     }
 
-    // Finished the last activity in this stage. Only the very last stage
-    // (Recover) in the sequence can award the level's badge, and only if
-    // this attempt brought the level's total XP to its full possible
-    // amount - a perfect score, not just full attempt coverage.
-    //
-    // levelProgress (read above, before this dispatch) already reflects
-    // every stage and every earlier activity in THIS stage, since those
-    // were dispatched on previous calls to this function. The only thing
-    // it doesn't yet include is earnedXp from THIS activity, since that
-    // dispatch hasn't landed in state yet - so it's added in directly
-    // here rather than re-reading state after the dispatch above.
-    if (isLastStage) {
-      const alreadyEarnedAcrossLevel = levelProgress ? getLevelEarnedXp(levelProgress) : 0;
-      const totalEarnedIncludingThisActivity = alreadyEarnedAcrossLevel + earnedXp;
-      const totalPossibleForLevel = getLevelPossibleXp(levelContent);
-      const isPerfectScore = totalEarnedIncludingThisActivity === totalPossibleForLevel;
-
-      if (isPerfectScore) {
-        dispatch({
-          type: 'COMPLETE_LEVEL',
-          missionId,
-          level,
-          badgeId: levelContent.badgeId,
-        });
-
-        // Check whether THIS level was the last one needed to complete
-        // the whole mission - same "add the fresh value to what's
-        // already in state" approach as the level score check above,
-        // since this level's badge isn't in state yet either.
-        const allLevelBadgeIds = Object.values(mission.levels).map((lvl) => lvl.badgeId);
-        const badgesEarnedSoFar = missionProgress ? missionProgress.badgesEarned : [];
-        const badgesEarnedIncludingThisLevel = [...badgesEarnedSoFar, levelContent.badgeId];
-        const isMissionNowComplete = allLevelBadgeIds.every((badgeId) =>
-          badgesEarnedIncludingThisLevel.includes(badgeId)
-        );
-
-        const newlyEarnedBadges = [
-          { badgeId: levelContent.badgeId, badgeName: levelContent.badgeName },
-        ];
-
-        if (isMissionNowComplete && mission.missionBadge) {
-          dispatch({
-            type: 'COMPLETE_MISSION',
-            missionId,
-            badgeId: mission.missionBadge.badgeId,
-          });
-          newlyEarnedBadges.push({
-            badgeId: mission.missionBadge.badgeId,
-            badgeName: mission.missionBadge.badgeName,
-          });
-        }
-
-        // navigate (not goBack) so MissionDetailScreen's params update
-        // with the just-earned badge(s), which is what triggers its
-        // popup. React Navigation pops back to the already-mounted
-        // MissionDetail screen in the stack and merges these params in,
-        // rather than pushing a duplicate instance.
-        navigation.navigate('MissionDetail', {
-          missionId,
-          justEarnedBadges: newlyEarnedBadges,
-        });
-        return;
-      }
-      // If it's not a perfect score, no badge is awarded - the player can
-      // re-enter this stage (or any earlier stage) to retry activities
-      // and try again. Nothing here blocks that; COMPLETE_ACTIVITY always
-      // accepts a fresh attempt.
-    }
-
+    // Finished the last activity in this stage - back to Mission Detail.
+    // Level and mission badges are checked there, from the saved progress
+    // (see MissionDetailScreen), so a perfect score earns the badge whichever
+    // stage it was completed in, including retries of earlier stages.
     navigation.goBack();
   }
 
   return (
-    <SafeAreaView style={styles.wrapper} edges={["top"]}>
-      <View style={styles.progressHeader}>
-        <Text style={styles.progressHeaderText}>
-          {STAGE_DISPLAY_LABELS[stage]} progress: {stageEarnedXpSoFar} / {stagePossibleXp} XP
-        </Text>
-      </View>
+    <View style={styles.wrapper}>
+      <ScreenHeader
+        title={`Level ${level} · ${STAGE_DISPLAY_LABELS[stage]}`}
+        subtitle={`Activity ${currentActivityIndex + 1} of ${activities.length} · ${stageEarnedXpSoFar} / ${stagePossibleXp} XP`}
+        onBack={() => navigation.goBack()}
+      />
 
       {renderActivity()}
-    </SafeAreaView>
+    </View>
   );
 
   function renderActivity() {
@@ -182,24 +112,28 @@ export default function ActivityPlayerScreen() {
       );
     }
 
+    // key={currentActivity.id} makes React start each activity fresh. Without
+    // it, two activities of the same type in a row (e.g. Level 1's two Plan
+    // checklists) reuse the same component, so the previous activity's
+    // selections and submitted state carry over into the next one.
     if (currentActivity.type === 'lesson') {
-      return <Lesson activity={currentActivity} onComplete={handleActivityComplete} />;
+      return <Lesson key={currentActivity.id} activity={currentActivity} onComplete={handleActivityComplete} />;
     }
 
     if (currentActivity.type === 'quiz') {
-      return <Quiz activity={currentActivity} onComplete={handleActivityComplete} />;
+      return <Quiz key={currentActivity.id} activity={currentActivity} onComplete={handleActivityComplete} />;
     }
 
     if (currentActivity.type === 'checklist') {
-      return <Checklist activity={currentActivity} onComplete={handleActivityComplete} />;
+      return <Checklist key={currentActivity.id} activity={currentActivity} onComplete={handleActivityComplete} />;
     }
 
     if (currentActivity.type === 'matching') {
-      return <Matching activity={currentActivity} onComplete={handleActivityComplete} />;
+      return <Matching key={currentActivity.id} activity={currentActivity} onComplete={handleActivityComplete} />;
     }
 
     if (currentActivity.type === 'scenario') {
-      return <Scenario activity={currentActivity} onComplete={handleActivityComplete} />;
+      return <Scenario key={currentActivity.id} activity={currentActivity} onComplete={handleActivityComplete} />;
     }
 
     // A type without a matching component yet.
@@ -219,17 +153,7 @@ export default function ActivityPlayerScreen() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-  },
-  progressHeader: {
-    backgroundColor: COLORS.backgroundGreenD,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  progressHeaderText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: 'bold',
+    backgroundColor: COLORS.backgroundCream,
   },
   centeredContainer: {
     flex: 1,

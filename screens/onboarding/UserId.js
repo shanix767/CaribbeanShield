@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameContext } from '../../context/GameContext';
 import { previewNextUserId, claimNextUserId, createUserRecord } from '../../services/firestoreUsers';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 
 export default function UserIdScreen() {
   const navigation = useNavigation();
@@ -53,12 +54,14 @@ export default function UserIdScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <ScreenHeader
+        title="What's your name?"
+        subtitle="Step 3 of 4 · Used to match your pretest and posttest results."
+        onBack={() => navigation.goBack()}
+      />
+      <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>What's your name?</Text>
-        <Text style={styles.subtitle}>
-          This is used to match your pretest and posttest results.
-        </Text>
 
         <TextInput
           style={styles.input}
@@ -90,11 +93,16 @@ export default function UserIdScreen() {
           {isSaving ? 'Saving...' : 'Continue'}
         </Text>
       </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundCream,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
@@ -104,18 +112,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.textGreen,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.textGray,
-    marginBottom: 24,
   },
   input: {
     backgroundColor: COLORS.backgroundWhite,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Image } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import {
   useGameContext,
   STAGE_ORDER,
@@ -12,10 +12,12 @@ import {
   getStagePossibleXp,
   getLevelEarnedXp,
   getLevelPossibleXp,
+  getMissionReadinessScore,
 } from '../../context/GameContext';
 import { MISSION_CONTENT_BY_ID } from '../../missionContent';
 import { getBadgeImage } from '../../missionContent/badges';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 
 // Display labels and icons for each stage - purely cosmetic, kept out of
 // the content files since every mission's stages are named the same way.
@@ -39,7 +41,7 @@ export default function MissionDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { missionId } = route.params;
-  const { state } = useGameContext();
+  const { state, dispatch } = useGameContext();
   const [justEarnedBadges, setJustEarnedBadges] = useState(null);
 
   // ActivityPlayerScreen navigates back here with justEarnedBadges set
@@ -55,6 +57,70 @@ export default function MissionDetailScreen() {
     }
   }, [route.params?.justEarnedBadges]);
 
+  // Level and mission badges are awarded here, whenever this screen shows
+  // with new progress - not only at the end of the Recover stage. A level's
+  // badge needs a perfect score across all its activities, and a player
+  // often gets there by going back and retrying an earlier stage (Learn,
+  // Plan...) after already finishing Recover. Checking here, from the
+  // saved progress, catches every route to a perfect score, and also
+  // awards any badge that was missed before this check existed.
+  // COMPLETE_LEVEL / COMPLETE_MISSION ignore a badge that's already
+  // earned, so this can never award the same badge twice.
+  // Only while this screen is showing: it stays mounted underneath the
+  // Activity Player, and its badge popup would otherwise appear on top of
+  // an activity the player is still in the middle of.
+  const isFocused = useIsFocused();
+  const missionProgressForBadges = state.missions[missionId];
+  useEffect(() => {
+    if (!isFocused) return;
+    const missionContent = MISSION_CONTENT_BY_ID[missionId];
+    if (!missionContent || !missionProgressForBadges) return;
+
+    const earnedBadgeIds = [...missionProgressForBadges.badgesEarned];
+    const newlyEarnedBadges = [];
+
+    Object.keys(missionContent.levels)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .forEach((levelNumber) => {
+        const levelContent = missionContent.levels[levelNumber];
+        const levelProgress = missionProgressForBadges.levels[levelNumber];
+        if (!levelProgress || earnedBadgeIds.includes(levelContent.badgeId)) return;
+
+        const isPerfectScore =
+          getLevelEarnedXp(levelProgress) === getLevelPossibleXp(levelContent);
+        if (!isPerfectScore) return;
+
+        dispatch({
+          type: 'COMPLETE_LEVEL',
+          missionId,
+          level: levelNumber,
+          badgeId: levelContent.badgeId,
+        });
+        earnedBadgeIds.push(levelContent.badgeId);
+        newlyEarnedBadges.push({
+          badgeId: levelContent.badgeId,
+          badgeName: levelContent.badgeName,
+        });
+      });
+
+    // The mission-wide badge, once every level's badge is earned.
+    const missionBadge = missionContent.missionBadge;
+    const allLevelBadgeIds = Object.values(missionContent.levels).map((level) => level.badgeId);
+    if (
+      missionBadge &&
+      !earnedBadgeIds.includes(missionBadge.badgeId) &&
+      allLevelBadgeIds.every((badgeId) => earnedBadgeIds.includes(badgeId))
+    ) {
+      dispatch({ type: 'COMPLETE_MISSION', missionId, badgeId: missionBadge.badgeId });
+      newlyEarnedBadges.push({ badgeId: missionBadge.badgeId, badgeName: missionBadge.badgeName });
+    }
+
+    if (newlyEarnedBadges.length > 0) {
+      setJustEarnedBadges((current) => [...(current || []), ...newlyEarnedBadges]);
+    }
+  }, [isFocused, missionProgressForBadges, missionId, dispatch]);
+
   const mission = MISSION_CONTENT_BY_ID[missionId];
   const missionProgress = state.missions[missionId];
 
@@ -68,16 +134,32 @@ export default function MissionDetailScreen() {
 
   const levelNumbers = Object.keys(mission.levels).map(Number).sort((a, b) => a - b);
 
-  return (
-    <>
-    <ScrollView style={styles.screenContainer} contentContainerStyle={styles.scrollContent}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={styles.backLink}>← Back to Missions</Text>
-      </TouchableOpacity>
+  // This mission's own Readiness Score (0-100), as opposed to the overall
+  // average across every mission shown on the Missions tab.
+  const missionReadinessPercent = getMissionReadinessScore(state, mission);
+  const readinessTitle = mission.readinessLabel || `${mission.title} Readiness`;
 
-      <Text style={styles.missionIcon}>{mission.iconPlaceholder}</Text>
-      <Text style={styles.missionTitle}>{mission.title}</Text>
+  return (
+    <View style={styles.screenContainer}>
+    <ScreenHeader
+      title={`${mission.iconPlaceholder} ${mission.title}`}
+      onBack={() => navigation.goBack()}
+      backLabel="Missions"
+    />
+    <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
       <Text style={styles.missionDescription}>{mission.description}</Text>
+
+      <View style={styles.readinessCard}>
+        <Text style={styles.readinessTitle}>{readinessTitle}</Text>
+        <View style={styles.readinessRow}>
+          <View style={styles.readinessBarTrack}>
+            <View
+              style={[styles.readinessBarFill, { width: `${missionReadinessPercent}%` }]}
+            />
+          </View>
+          <Text style={styles.readinessPercent}>{missionReadinessPercent}%</Text>
+        </View>
+      </View>
 
       {missionProgress.badgesEarned.length > 0 && (
         <TouchableOpacity
@@ -85,7 +167,8 @@ export default function MissionDetailScreen() {
           onPress={() => navigation.navigate('BadgePage')}
         >
           <Text style={styles.badgeBannerText}>
-            🏅 Badges earned: {missionProgress.badgesEarned.length} - tap to view
+            🏅 {missionProgress.badgesEarned.length}{' '}
+            {missionProgress.badgesEarned.length === 1 ? 'badge' : 'badges'} earned · View all ›
           </Text>
         </TouchableOpacity>
       )}
@@ -264,7 +347,7 @@ export default function MissionDetailScreen() {
           </View>
         </View>
       </Modal>
-    </>
+    </View>
   );
 }
 
@@ -273,9 +356,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
   },
+  scrollArea: {
+    flex: 1,
+  },
   scrollContent: {
     padding: 20,
-    paddingTop: 60,
   },
   centeredContainer: {
     flex: 1,
@@ -306,16 +391,53 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 16,
   },
+  readinessCard: {
+    backgroundColor: COLORS.backgroundGreen,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  readinessTitle: {
+    color: COLORS.textWhite,
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  readinessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  readinessBarTrack: {
+    flex: 1,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.backgroundWhite,
+    overflow: 'hidden',
+  },
+  readinessBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.borderYellow,
+  },
+  readinessPercent: {
+    color: COLORS.textWhite,
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
   badgeBanner: {
     backgroundColor: COLORS.backgroundGreen,
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
-    alignItems: 'center',
   },
+  // Centred with textAlign on the full-width text rather than alignItems on
+  // the banner: Android can under-measure bold text that contains an emoji
+  // when it is shrink-wrapped, which cut off the last word.
   badgeBannerText: {
+    width: '100%',
+    textAlign: 'center',
     color: COLORS.textWhite,
     fontWeight: 'bold',
+    fontSize: 15,
   },
   levelCard: {
     backgroundColor: COLORS.backgroundWhite,

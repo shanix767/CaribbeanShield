@@ -8,17 +8,18 @@
 // services/ rather than duplicating the expo-notifications/expo-location
 // calls here.
 //
-// Both are skippable — a player can continue without granting either;
+// Both are skippable - a player can continue without granting either;
 // the app's existing lazy-request behaviour elsewhere still covers anyone
 // who skips here and grants later.
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { requestNotificationPermission } from '../../services/notifications';
 import { requestLocationPermission } from '../../services/locationApi';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 
 export default function PermissionsScreen() {
   const navigation = useNavigation();
@@ -40,10 +41,16 @@ export default function PermissionsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Almost ready</Text>
-        <Text style={styles.subtitle}>Enable alerts to protect your household.</Text>
+    <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <ScreenHeader
+        title="Almost ready"
+        subtitle="Step 2 of 4 · Enable alerts to protect your household."
+        onBack={() => navigation.goBack()}
+      />
+      <View style={styles.container}>
+      {/* The two cards scroll, so on a short screen they can never overlap
+          the Continue button below them. */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
         <View style={styles.permissionCard}>
           <View style={styles.iconCircleYellow}>
@@ -78,7 +85,7 @@ export default function PermissionsScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </ScrollView>
 
       <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
         <Text style={styles.continueButtonText}>Continue →</Text>
@@ -86,11 +93,16 @@ export default function PermissionsScreen() {
       <TouchableOpacity onPress={handleContinue}>
         <Text style={styles.skipText}>Skip for now (alerts may be less accurate)</Text>
       </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundCream,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
@@ -99,17 +111,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.textGreen,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textGray,
-    marginBottom: 24,
   },
   permissionCard: {
     backgroundColor: COLORS.backgroundWhite,
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   allowButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontWeight: 'bold',
     fontSize: 14,
   },
@@ -173,10 +174,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     borderRadius: 8,
+    marginTop: 12,
     marginBottom: 12,
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

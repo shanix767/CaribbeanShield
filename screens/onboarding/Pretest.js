@@ -7,15 +7,23 @@
 // question - no right/wrong highlighting, no explanation. Answers are
 // scored silently and only the final total is shown. Mission quizzes still
 // use Quiz.js with its normal feedback; nothing there is changed.
+//
+// A "Skip" link lets the player go straight into the app without a
+// pretest score (after a confirmation). Set SHOW_SKIP_PRETEST to false for
+// evaluation builds, so participants can't skip their baseline.
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameContext } from '../../context/GameContext';
 import { PRETEST_ACTIVITY } from '../../missionContent/onboarding/pretest';
 import { savePretestScoreToFirestore } from '../../services/firestoreUsers';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader, { HeaderButton } from '../../components/ScreenHeader';
+
+// Turn off for evaluation builds so participants always sit the pretest.
+const SHOW_SKIP_PRETEST = true;
 
 export default function PretestScreen() {
   const navigation = useNavigation();
@@ -55,6 +63,25 @@ export default function PretestScreen() {
     }
   }
 
+  function handleSkipPretest() {
+    Alert.alert(
+      'Skip the pretest?',
+      "You won't have a baseline score, so the posttest can't show how much you've " +
+        "improved. You can't come back to the pretest later.",
+      [
+        { text: 'Take the pretest', style: 'cancel' },
+        {
+          text: 'Skip',
+          style: 'destructive',
+          onPress: () => {
+            dispatch({ type: 'SKIP_PRETEST' });
+            handleFinishOnboarding();
+          },
+        },
+      ]
+    );
+  }
+
   function handleFinishOnboarding() {
     dispatch({ type: 'COMPLETE_ONBOARDING' });
     // Reset rather than navigate, so the onboarding screens aren't sitting
@@ -65,14 +92,16 @@ export default function PretestScreen() {
 
   if (pretestScore === null) {
     return (
-      <SafeAreaView style={styles.wrapper} edges={['top', 'bottom']}>
-        <View style={styles.introHeader}>
-          <Text style={styles.introHeaderText}>
-            Before we start, a quick {totalQuestions}-question pretest - this gives us a
-            baseline to compare against later, so answer as best you can even if you're
-            not sure.
-          </Text>
-        </View>
+      <SafeAreaView style={styles.wrapper} edges={['bottom']}>
+        <ScreenHeader
+          title="Pretest"
+          subtitle={`Step 4 of 4 · ${totalQuestions} questions to give a baseline to compare against later. Answer as best you can, even if you're not sure.`}
+          right={
+            SHOW_SKIP_PRETEST ? (
+              <HeaderButton label="Skip ›" onPress={handleSkipPretest} accessibilityLabel="Skip pretest" />
+            ) : null
+          }
+        />
         <ScrollView style={styles.scroll} contentContainerStyle={styles.questionArea}>
           <Text style={styles.progressText}>
             Question {currentIndex + 1} of {totalQuestions}
@@ -105,7 +134,9 @@ export default function PretestScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.resultsContainer} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.wrapper} edges={['bottom']}>
+      <ScreenHeader title="Pretest complete" />
+      <View style={styles.resultsContainer}>
       <Text style={styles.resultsIcon}>📋</Text>
       <Text style={styles.resultsTitle}>Pretest complete</Text>
       <Text style={styles.resultsScore}>
@@ -119,6 +150,7 @@ export default function PretestScreen() {
       <TouchableOpacity style={styles.continueButton} onPress={handleFinishOnboarding}>
         <Text style={styles.continueButtonText}>Continue to CaribbeanShield</Text>
       </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -127,15 +159,6 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
-  },
-  introHeader: {
-    backgroundColor: COLORS.backgroundGreenD,
-    padding: 16,
-  },
-  introHeaderText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    lineHeight: 19,
   },
   scroll: {
     flex: 1,
@@ -157,11 +180,11 @@ const styles = StyleSheet.create({
   },
   optionRow: {
     borderWidth: 1.5,
-    borderColor: '#DDDDDD',
+    borderColor: COLORS.borderCream,
     borderRadius: 8,
     padding: 14,
     marginBottom: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.backgroundWhite,
   },
   optionRowSelected: {
     borderColor: COLORS.backgroundGreenD,
@@ -186,7 +209,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   nextButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -226,7 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.textWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },

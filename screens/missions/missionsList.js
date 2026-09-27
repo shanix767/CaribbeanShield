@@ -10,6 +10,7 @@ import {
 } from '../../context/GameContext';
 import { ALL_MISSIONS } from '../../missionContent';
 import { COLORS } from '../../theme/colors';
+import ScreenHeader from '../../components/ScreenHeader';
 
 export default function MissionsListScreen() {
   const navigation = useNavigation();
@@ -18,18 +19,20 @@ export default function MissionsListScreen() {
   const readinessPercent = getReadinessPercentage(state, ALL_MISSIONS);
 
   return (
-    <ScrollView style={styles.screenContainer} contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.screenTitle}>Missions</Text>
+    <View style={styles.screenContainer}>
+      <ScreenHeader title="Missions" />
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
 
       <View style={styles.statusCard}>
         <Text style={styles.playerLevelText}>
           Level {playerLevel.level} - {playerLevel.name}
         </Text>
+        <Text style={styles.readinessTitle}>Overall Readiness Score</Text>
         <View style={styles.readinessRow}>
           <View style={styles.readinessBarTrack}>
             <View style={[styles.readinessBarFill, { width: `${readinessPercent}%` }]} />
           </View>
-          <Text style={styles.readinessLabel}>{readinessPercent}% Ready</Text>
+          <Text style={styles.readinessLabel}>{readinessPercent}%</Text>
         </View>
       </View>
 
@@ -60,8 +63,17 @@ export default function MissionsListScreen() {
 
       {ALL_MISSIONS.map((mission) => {
         const missionProgress = state.missions[mission.missionId];
-        const badgesEarnedCount = missionProgress ? missionProgress.badgesEarned.length : 0;
-        const totalLevelsBuilt = Object.keys(mission.levels).length;
+// Every badge this mission can award: one per level, plus the
+// mission-wide badge for finishing them all (Hurricane Ready: 6 + 1).
+// Only these are counted, so the total can never exceed the maximum.
+const missionBadgeIds = [
+  ...Object.values(mission.levels).map((level) => level.badgeId),
+    ...(mission.missionBadge ? [mission.missionBadge.badgeId] : []),
+  ];
+const badgesEarnedCount = missionProgress
+  ? missionBadgeIds.filter((badgeId) => missionProgress.badgesEarned.includes(badgeId)).length
+  : 0;
+const totalMissionBadges = missionBadgeIds.length;
         const missionXp = getMissionXp(state, mission.missionId);
 
         return (
@@ -81,12 +93,12 @@ export default function MissionsListScreen() {
                   <View
                     style={[
                       styles.progressBarFill,
-                      { width: `${(badgesEarnedCount / totalLevelsBuilt) * 100}%` },
+                      { width: `${(badgesEarnedCount / totalMissionBadges) * 100}%` },
                     ]}
                   />
                 </View>
                 <Text style={styles.progressLabel}>
-                  {badgesEarnedCount}/{totalLevelsBuilt} badges
+                  {badgesEarnedCount}/{totalMissionBadges} badges
                 </Text>
               </View>
 
@@ -95,7 +107,8 @@ export default function MissionsListScreen() {
           </TouchableOpacity>
         );
       })}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -104,9 +117,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.backgroundCream,
   },
+  scrollArea: {
+    flex: 1,
+  },
   scrollContent: {
     padding: 20,
-    paddingTop: 60,
   },
   screenTitle: {
     fontSize: 24,
@@ -131,10 +146,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  readinessTitle: {
+    color: COLORS.textWhite,
+    fontSize: 14,
+    marginBottom: 6,
+  },
   readinessBarTrack: {
     flex: 1,
-    height: 8,
-    borderRadius: 4,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: COLORS.backgroundWhite,
     overflow: 'hidden',
   },
@@ -145,7 +165,7 @@ const styles = StyleSheet.create({
   readinessLabel: {
     color: COLORS.textWhite,
     fontWeight: 'bold',
-    fontSize: 12,
+    fontSize: 18,
   },
   badgesLink: {
     backgroundColor: COLORS.backgroundWhite,

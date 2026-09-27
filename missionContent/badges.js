@@ -1,12 +1,12 @@
 // missionContent/badges.js
 //
 // The badge catalog is derived directly from mission content rather than
-// maintained as a separate list — a level badge appears here automatically
+// maintained as a separate list - a level badge appears here automatically
 // the moment its level exists in missionContent/, and each mission's own
 // mission-wide badge (see missionBadge on the mission content object)
 // appears alongside its level badges.
 //
-// Image requires use a literal path per entry — React Native/Metro needs
+// Image requires use a literal path per entry - React Native/Metro needs
 // a static string to bundle a local image, so this can't be built
 // dynamically from a badgeId string at runtime.
 
@@ -23,9 +23,10 @@ const BADGE_IMAGES = {
   hurricaneReadyBadge: require('../assets/badges/hurricaneReadyBadge.png'),
   wayFinder: require('../assets/badges/wayFinder.png'),
   bagBuilder: require('../assets/badges/bagBuilder.png'),
+  connector: require('../assets/badges/connector.png'),
 };
 
-// Falls back to null (not an emoji) when a badge has no image yet — the
+// Falls back to null (not an emoji) when a badge has no image yet - the
 // rendering side (BadgePage, the earned-badge popup) is responsible for
 // deciding what to show in that case, e.g. a plain placeholder box.
 export function getBadgeImage(badgeId) {
