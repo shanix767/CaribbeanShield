@@ -6,12 +6,14 @@
 //       NavigationContainer
 //         Stack.Navigator (initial route depends on state.onboardingCompleted)
 //           "Welcome" / "ParishSelection" / "Pretest" -> shown once, before MainTabs
-//           "MainTabs" -> the bottom tab bar (Hazard Watch / Shelter / Missions)
+//           "MainTabs" -> the bottom tab bar (Home / Missions / Badges / Alert / Hub)
 //           "MissionDetail" -> pushed on top of the tabs when a mission is tapped
 //           "ActivityPlayer" -> pushed when a stage is entered
+//           "DevTestPanel" -> developer test panel, opened from Settings
+//                             (the Settings row only shows in dev builds)
 //
 // AppContent waits for hasLoadedSavedState before rendering the Navigator
-// at all — Stack.Navigator's initialRouteName is only read once, on
+// at all - Stack.Navigator's initialRouteName is only read once, on
 // mount, so rendering it before the saved state has loaded could pick the
 // wrong starting screen (flashing onboarding for a returning player, or
 // vice versa) depending on which finished first.
@@ -22,6 +24,7 @@
 // whichever tab/screen is currently active.
 
 import { useState, useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -48,7 +51,9 @@ import SideMissionPlayerScreen from './screens/SideMissionPlayer';
 import BadgePageScreen from './screens/BadgePage';
 import PosttestScreen from './screens/Posttest';
 import LeaderboardScreen from './screens/Leaderboard';
-import FirebaseTestScreen from './screens/FirebaseTestScreen'; // TEMPORARY
+import PreparednessGuideScreen from './screens/PreparednessGuide';
+import CommunicationPlanScreen from './screens/CommunicationPlan';
+import FirebaseTestScreen from './screens/FirebaseTestScreen'; // Developer Test Panel (dev only)
 
 import { fetchHurricaneWatchData } from './services/hurricaneApi';
 import { fetchRecentEarthquakes } from './services/earthquakeApi';
@@ -62,31 +67,44 @@ import { COLORS } from './theme/colors';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Emoji shown above each bottom tab's label. Inactive tabs show their
+// emoji faded so the active tab stands out.
+const TAB_EMOJIS = {
+  Home: '🏠',
+  Missions: '🎯',
+  Badges: '🌟',
+  Alert: '⚠️',
+  Hub: '📞',
+};
+
 function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: COLORS.textWhite,
         tabBarInactiveTintColor: COLORS.textDark,
         tabBarActiveBackgroundColor: COLORS.backgroundGreen,
         tabBarStyle: { backgroundColor: COLORS.backgroundCream },
         tabBarLabelStyle: { fontWeight: 'bold' },
-      }}
+        tabBarIcon: ({ focused }) => (
+          <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.6 }}>
+            {TAB_EMOJIS[route.name]}
+          </Text>
+        ),
+      })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="Missions" component={MissionsListScreen} options={{ title: 'Missions' }} />
       <Tab.Screen name="Badges" component={BadgePageScreen} options={{ title: 'Badges' }} />
       <Tab.Screen name="Alert" component={HazardWatchScreen} options={{ title: 'Alert' }} />
       <Tab.Screen name="Hub" component={ResourceHubScreen} options={{ title: 'Hub' }} />
-      <Tab.Screen name="FirebaseTest" component={FirebaseTestScreen} options={{ title: '🔥 FB Test' }} />
-      {/* TEMPORARY tab above — remove once Firebase is confirmed working */}
     </Tab.Navigator>
   );
 }
 
 // Everything that used to be directly in App() now lives here instead,
-// since it needs useGameContext() — which only works INSIDE GameProvider,
+// since it needs useGameContext() - which only works INSIDE GameProvider,
 // not in the same component that renders GameProvider itself.
 function AppContent() {
   const { state, hasLoadedSavedState } = useGameContext();
@@ -95,11 +113,11 @@ function AppContent() {
   useEffect(() => {
     async function checkForChangesOnAppOpen() {
       // Only auto-request here for a RETURNING user (onboarding already
-      // done) — a brand-new install goes through the dedicated
+      // done) - a brand-new install goes through the dedicated
       // Permissions screen instead, which explains why the permission is
       // needed before asking. Requesting it here unconditionally would
       // trigger the OS prompt before that screen even renders, since a
-      // permission prompt only shows once — making the Permissions
+      // permission prompt only shows once - making the Permissions
       // screen's own "Allow" button silently do nothing.
       if (state.onboardingCompleted) {
         await requestNotificationPermission();
@@ -116,7 +134,7 @@ function AppContent() {
       const storms = TEST_MODE.hurricane
         ? TEST_STORM.storms
         : hurricaneResult.status === 'fulfilled' ? hurricaneResult.value.storms : [];
-      // Hurricane has no on/off preference — it's always checked. The
+      // Hurricane has no on/off preference - it's always checked. The
       // other three respect notificationPreferences: if disabled, treat
       // it as if nothing was found, so no notification ever fires for it.
       const earthquakes = !state.notificationPreferences.earthquakeAlerts
@@ -146,7 +164,7 @@ function AppContent() {
           setActiveAlerts(changes);
         }
       } catch {
-        // Notifications are a nice-to-have — never block the app over this.
+        // Notifications are a nice-to-have - never block the app over this.
       }
     }
 
@@ -154,13 +172,18 @@ function AppContent() {
   }, []);
 
   if (!hasLoadedSavedState) {
-    // Brief and deliberately plain — this only shows for the moment it
+    // Brief and deliberately plain - this only shows for the moment it
     // takes AsyncStorage to return, not long enough to need branding.
     return <View style={[styles.overlay, { backgroundColor: COLORS.backgroundCream }]} />;
   }
 
   return (
     <>
+      {/* Dark status bar icons (time, battery, signal) for screens with a
+          light top - the onboarding screens. Every main screen has the green
+          ScreenHeader, which switches the icons to white while it's showing
+          (components/ScreenHeader.js). */}
+      <StatusBar style="dark" />
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{ headerShown: false }}
@@ -177,6 +200,9 @@ function AppContent() {
           <Stack.Screen name="SettingsMenu" component={SettingsMenuScreen} />
           <Stack.Screen name="ChangeLocation" component={ChangeLocationScreen} />
           <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+          <Stack.Screen name="PreparednessGuide" component={PreparednessGuideScreen} />
+          <Stack.Screen name="CommunicationPlan" component={CommunicationPlanScreen} />
+          <Stack.Screen name="DevTestPanel" component={FirebaseTestScreen} />
           <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
           <Stack.Screen name="ActivityPlayer" component={ActivityPlayerScreen} />
           <Stack.Screen name="SideMissionPlayer" component={SideMissionPlayerScreen} />
